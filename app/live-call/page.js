@@ -1,6 +1,55 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import "../globals.css";
+
+const DEFAULTS = {
+  name: "Tony's Pizza", tagline: "Best pizza in the city", agentName: "Maya",
+  menu: "Large Pepperoni - $18\nLarge Margherita - $16\nLarge BBQ Chicken - $19\nLarge Mushroom - $16\nGarlic Bread - $5\nCoke/Diet Coke - $3",
+  hours: "Mon-Sun 11am - 11pm",
+  refundPolicy: "We offer full refunds for wrong or cold orders within 30 minutes of delivery.",
+  phone: "(408) 555-0100",
+};
+
+function buildSystemPrompt(p) {
+  return `You are ${p.agentName}, the friendly front desk at ${p.name}. ${p.tagline}.
+
+You can help with:
+- Taking new orders (ask for size, item, delivery address, phone number)
+- Handling complaints about wrong or late orders (get order details, apologize sincerely, follow the refund policy)
+- Answering questions about the menu, pricing, and delivery times
+- Catering and bulk orders (take details and let them know the manager will call back)
+- Partnership or business inquiries (take their name, company, and number for follow-up)
+
+MENU:
+${p.menu}
+
+HOURS: ${p.hours}
+PHONE: ${p.phone}
+
+REFUND POLICY: ${p.refundPolicy}
+
+Detect the language the customer is speaking within their first sentence and respond entirely in that language for the rest of the call. If they speak Urdu, respond in Urdu. If English, respond in English.
+
+Keep responses short and natural — this is a phone call, not a chat. Never make up prices or items not on the menu. If something is outside your ability to resolve, tell the customer you will escalate it and ask for their contact details.`;
+}
+
+const ANGRY_WORDS = ["furious", "angry", "ridiculous", "terrible", "lawsuit", "useless", "disgusting", "every time", "again", "third time", "never again", "worst", "outraged", "unacceptable"];
+const FRUSTRATED_WORDS = ["frustrated", "disappointed", "waiting", "late", "wrong", "issue", "problem", "not working", "confused", "still", "hour", "long time"];
+
+function computeSentiment(transcript) {
+  const text = transcript.map(t => t.text).join(" ").toLowerCase();
+  const angryScore = ANGRY_WORDS.filter(w => text.includes(w)).length;
+  const frustratedScore = FRUSTRATED_WORDS.filter(w => text.includes(w)).length;
+  if (angryScore >= 2) return "angry";
+  if (angryScore >= 1 || frustratedScore >= 2) return "frustrated";
+  return "calm";
+}
+
+const SENTIMENT_CONFIG = {
+  calm: { emoji: "🟢", label: "Calm", color: "#10B981", bg: "#ECFDF5" },
+  frustrated: { emoji: "🟡", label: "Frustrated", color: "#D97706", bg: "#FFFBEB" },
+  angry: { emoji: "🔴", label: "Angry", color: "#DC2626", bg: "#FEF2F2" },
+};
 
 // Shared triage rendering helpers (copied from call-triage page)
 const STEP_LABELS = ["Call Parse", "Intent Classification", "Urgency Assessment", "Routing Decision", "Agent Handoff Summary"];
@@ -61,11 +110,22 @@ function StepCard({ step, isActive }) {
 }
 
 function VerdictCard({ verdict }) {
-  const colors = ROUTE_COLORS[verdict.route] || ROUTE_COLORS.HUMAN_REVIEW;
+  const lowConfidence = verdict.confidence < 70;
+  const displayRoute = lowConfidence ? "HUMAN_REVIEW" : verdict.route;
+  const colors = ROUTE_COLORS[displayRoute] || ROUTE_COLORS.HUMAN_REVIEW;
   const urgencyColor = verdict.urgency >= 8 ? "#DC2626" : verdict.urgency >= 5 ? "#F59E0B" : "#10B981";
   const confidenceColor = verdict.confidence >= 80 ? "#10B981" : verdict.confidence >= 60 ? "#F59E0B" : "#DC2626";
   return (
     <div style={{ background: "linear-gradient(135deg, #1B1C1C 0%, #2C2D2D 100%)", borderRadius: 12, padding: "20px 24px", marginTop: 8, boxShadow: "0 8px 32px rgba(0,0,0,0.18)" }}>
+      {lowConfidence && (
+        <div style={{ background: "#FEF3C7", border: "1px solid #FCD34D", borderRadius: 8, padding: "10px 14px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 16 }}>⚠️</span>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#92400E" }}>Low confidence ({verdict.confidence}%) — flagged for human review</div>
+            <div style={{ fontSize: 11, color: "#B45309", marginTop: 2 }}>Originally routed to: {verdict.route.replace(/_/g, " ")}</div>
+          </div>
+        </div>
+      )}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
         <div style={{ background: "#00BADA", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, color: "#fff", letterSpacing: "0.06em", textTransform: "uppercase" }}>Routing Decision</div>
       </div>
@@ -74,7 +134,7 @@ function VerdictCard({ verdict }) {
         <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>{verdict.intent.replace(/_/g, " ")}</div>
       </div>
       <div style={{ display: "inline-block", background: colors.bg, border: `1.5px solid ${colors.border}`, borderRadius: 8, padding: "8px 16px", marginBottom: 16 }}>
-        <span style={{ fontSize: 15, fontWeight: 700, color: colors.text }}>→ {verdict.route.replace(/_/g, " ")}</span>
+        <span style={{ fontSize: 15, fontWeight: 700, color: colors.text }}>→ {displayRoute.replace(/_/g, " ")}</span>
       </div>
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 14px", display: "flex", flexDirection: "column", gap: 2 }}>
@@ -108,6 +168,7 @@ export default function LiveCallPage() {
   const [error, setError] = useState(null);
   const [callDuration, setCallDuration] = useState(0);
   const [vapiConfigured, setVapiConfigured] = useState(false);
+  const [profile, setProfile] = useState(DEFAULTS);
   const vapiRef = useRef(null);
   const timerRef = useRef(null);
   const triageOutputRef = useRef(null);
@@ -116,10 +177,15 @@ export default function LiveCallPage() {
   const steps = parseSteps(triageText);
   const verdict = triageDone ? extractVerdict(triageText) : null;
 
+  const sentiment = useMemo(() => computeSentiment(transcript), [transcript]);
+
   useEffect(() => {
-    // Check if Vapi is configured by seeing if env vars would be present
     const hasConfig = !!process.env.NEXT_PUBLIC_VAPI_API_KEY && !!process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
     setVapiConfigured(hasConfig);
+    try {
+      const stored = localStorage.getItem("restaurantProfile");
+      if (stored) setProfile({ ...DEFAULTS, ...JSON.parse(stored) });
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -180,7 +246,14 @@ export default function LiveCallPage() {
         clearInterval(timerRef.current);
       });
 
-      await vapi.start(process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID);
+      await vapi.start(process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID, {
+        assistantOverrides: {
+          firstMessage: `Thank you for calling ${profile.name}, this is ${profile.agentName} speaking. How can I help you today?`,
+          model: {
+            messages: [{ role: "system", content: buildSystemPrompt(profile) }],
+          },
+        },
+      });
     } catch (err) {
       setError("Failed to start call: " + err.message);
       setCallState(STATE.IDLE);
@@ -268,6 +341,8 @@ export default function LiveCallPage() {
             <a href="/email-agent" style={{ fontSize: 13, color: "#6B7280", textDecoration: "none", fontWeight: 500 }}>Email Triage</a>
             <a href="/call-triage" style={{ fontSize: 13, color: "#6B7280", textDecoration: "none", fontWeight: 500 }}>Call Triage</a>
             <a href="/live-call" style={{ fontSize: 13, color: "#2079F9", textDecoration: "none", fontWeight: 600, borderBottom: "2px solid #2079F9", paddingBottom: 2 }}>Live Call</a>
+            <a href="/history" style={{ fontSize: 13, color: "#6B7280", textDecoration: "none", fontWeight: 500 }}>History</a>
+            <a href="/settings" style={{ fontSize: 13, color: "#6B7280", textDecoration: "none", fontWeight: 500 }}>⚙ Settings</a>
           </div>
         </header>
 
@@ -291,11 +366,22 @@ export default function LiveCallPage() {
                 </div>
               </div>
 
-              <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 4 }}>Tony's Pizza</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 4 }}>{profile.name}</div>
               <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginBottom: 4 }}>Front Desk — Maya (AI)</div>
 
               {callState === STATE.ACTIVE && (
-                <div style={{ fontSize: 12, color: "#00BADA", fontFamily: "'JetBrains Mono', monospace", marginBottom: 4 }}>{formatDuration(callDuration)}</div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 4 }}>
+                  <div style={{ fontSize: 12, color: "#00BADA", fontFamily: "'JetBrains Mono', monospace" }}>{formatDuration(callDuration)}</div>
+                  {transcript.length > 0 && (() => {
+                    const s = SENTIMENT_CONFIG[sentiment];
+                    return (
+                      <div style={{ background: s.bg, border: `1px solid ${s.color}30`, borderRadius: 20, padding: "2px 10px", display: "flex", alignItems: "center", gap: 4, animation: sentiment === "angry" ? "pulse 1.5s infinite" : "none" }}>
+                        <span style={{ fontSize: 10 }}>{s.emoji}</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: s.color }}>{s.label}</span>
+                      </div>
+                    );
+                  })()}
+                </div>
               )}
 
               <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginBottom: 24, minHeight: 18 }}>
