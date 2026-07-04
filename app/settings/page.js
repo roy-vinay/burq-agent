@@ -19,6 +19,7 @@ const DEFAULTS = {
   hours: "Mon-Sun 11am - 11pm",
   refundPolicy: "We offer full refunds for wrong or cold orders within 30 minutes of delivery. Contact us and we will process your refund immediately.",
   phone: "(408) 555-0100",
+  voiceProvider: "vapi",
 };
 
 export default function SettingsPage() {
@@ -86,6 +87,29 @@ export default function SettingsPage() {
           </div>
 
           <div style={{ display: "grid", gap: 16 }}>
+
+            {/* Voice Provider */}
+            <div style={{ background: "#fff", borderRadius: 12, border: "1px solid var(--border)", padding: "24px", boxShadow: "var(--shadow-sm)" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#1B1C1C", marginBottom: 4 }}>Voice Provider</div>
+              <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 16 }}>Choose which AI voice platform handles live calls. Both require their own API key in environment variables.</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                {[
+                  { value: "vapi", label: "Vapi.ai", desc: "Paid ($10 min). Great voice quality, easy setup.", badge: "Current" },
+                  { value: "retell", label: "Retell AI", desc: "Free tier available. Supports Hindi + 30 languages.", badge: "Free tier" },
+                ].map(opt => {
+                  const active = profile.voiceProvider === opt.value;
+                  return (
+                    <div key={opt.value} onClick={() => handleChange("voiceProvider", opt.value)} style={{ border: `2px solid ${active ? "#2079F9" : "#E5E7EB"}`, borderRadius: 10, padding: "14px 16px", cursor: "pointer", background: active ? "#EBF3FF" : "#FAFAFA", transition: "all 0.15s" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: active ? "#2079F9" : "#374151" }}>{opt.label}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 10, background: active ? "#2079F9" : "#E5E7EB", color: active ? "#fff" : "#6B7280" }}>{opt.badge}</span>
+                      </div>
+                      <div style={{ fontSize: 11, color: "#6B7280", lineHeight: 1.5 }}>{opt.desc}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
             {/* Identity */}
             <div style={{ background: "#fff", borderRadius: 12, border: "1px solid var(--border)", padding: "24px", boxShadow: "var(--shadow-sm)" }}>

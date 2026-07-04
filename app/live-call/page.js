@@ -8,6 +8,7 @@ const DEFAULTS = {
   hours: "Mon-Sun 11am - 11pm",
   refundPolicy: "We offer full refunds for wrong or cold orders within 30 minutes of delivery.",
   phone: "(408) 555-0100",
+  voiceProvider: "vapi",
 };
 
 function buildSystemPrompt(p) {
@@ -168,8 +169,10 @@ export default function LiveCallPage() {
   const [error, setError] = useState(null);
   const [callDuration, setCallDuration] = useState(0);
   const [vapiConfigured, setVapiConfigured] = useState(false);
+  const [retellConfigured, setRetellConfigured] = useState(false);
   const [profile, setProfile] = useState(DEFAULTS);
   const vapiRef = useRef(null);
+  const retellRef = useRef(null);
   const timerRef = useRef(null);
   const triageOutputRef = useRef(null);
   const transcriptRef = useRef([]);
@@ -180,8 +183,8 @@ export default function LiveCallPage() {
   const sentiment = useMemo(() => computeSentiment(transcript), [transcript]);
 
   useEffect(() => {
-    const hasConfig = !!process.env.NEXT_PUBLIC_VAPI_API_KEY && !!process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
-    setVapiConfigured(hasConfig);
+    setVapiConfigured(!!process.env.NEXT_PUBLIC_VAPI_API_KEY && !!process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID);
+    setRetellConfigured(!!process.env.NEXT_PUBLIC_RETELL_API_KEY && !!process.env.NEXT_PUBLIC_RETELL_AGENT_ID);
     try {
       const stored = localStorage.getItem("restaurantProfile");
       if (stored) setProfile({ ...DEFAULTS, ...JSON.parse(stored) });
@@ -198,9 +201,12 @@ export default function LiveCallPage() {
     };
   }, []);
 
+  const activeProvider = profile.voiceProvider || "vapi";
+  const isConfigured = activeProvider === "retell" ? retellConfigured : vapiConfigured;
+
   async function startCall() {
-    if (!vapiConfigured) {
-      setError("Vapi not configured. See setup instructions below.");
+    if (!isConfigured) {
+      setError(`${activeProvider === "retell" ? "Retell AI" : "Vapi"} not configured. Add the required env vars.`);
       return;
     }
 
@@ -212,6 +218,14 @@ export default function LiveCallPage() {
     setTriageDone(false);
     setCallDuration(0);
 
+    if (activeProvider === "retell") {
+      await startRetellCall();
+    } else {
+      await startVapiCall();
+    }
+  }
+
+  async function startVapiCall() {
     try {
       const { default: Vapi } = await import("@vapi-ai/web");
       const vapi = new Vapi(process.env.NEXT_PUBLIC_VAPI_API_KEY);
@@ -221,10 +235,6 @@ export default function LiveCallPage() {
         setCallState(STATE.ACTIVE);
         timerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
       });
-
-      vapi.on("speech-start", () => {});
-      vapi.on("speech-end", () => {});
-
       vapi.on("message", (msg) => {
         if (msg.type === "transcript" && msg.transcriptType === "final") {
           const entry = { role: msg.role, text: msg.transcript, final: true };
@@ -232,14 +242,11 @@ export default function LiveCallPage() {
           setTranscript(prev => [...prev, entry]);
         }
       });
-
-      vapi.on("call-end", async () => {
+      vapi.on("call-end", () => {
         clearInterval(timerRef.current);
         setCallState(STATE.ENDED);
-        // Use ref so we get the actual accumulated transcript, not stale closure
         setTimeout(() => runTriageWithTranscript(transcriptRef.current), 500);
       });
-
       vapi.on("error", (err) => {
         setError(err.message || "Call error");
         setCallState(STATE.IDLE);
@@ -249,9 +256,7 @@ export default function LiveCallPage() {
       await vapi.start(process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID, {
         assistantOverrides: {
           firstMessage: `Thank you for calling ${profile.name}, this is ${profile.agentName} speaking. How can I help you today?`,
-          model: {
-            messages: [{ role: "system", content: buildSystemPrompt(profile) }],
-          },
+          model: { messages: [{ role: "system", content: buildSystemPrompt(profile) }] },
         },
       });
     } catch (err) {
@@ -260,8 +265,58 @@ export default function LiveCallPage() {
     }
   }
 
+  async function startRetellCall() {
+    try {
+      const { RetellWebClient } = await import("retell-client-js-sdk");
+      const retell = new RetellWebClient();
+      retellRef.current = retell;
+
+      // Get a web call access token from Retell API
+      const res = await fetch("/api/retell-call", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile }),
+      });
+      if (!res.ok) throw new Error(`Failed to create Retell call: ${res.status}`);
+      const { access_token } = await res.json();
+
+      retell.on("call_started", () => {
+        setCallState(STATE.ACTIVE);
+        timerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
+      });
+      retell.on("update", (update) => {
+        if (update.transcript) {
+          const entries = update.transcript.map(t => ({
+            role: t.role === "agent" ? "assistant" : "user",
+            text: t.content,
+            final: true,
+          }));
+          transcriptRef.current = entries;
+          setTranscript(entries);
+        }
+      });
+      retell.on("call_ended", () => {
+        clearInterval(timerRef.current);
+        setCallState(STATE.ENDED);
+        setTimeout(() => runTriageWithTranscript(transcriptRef.current), 500);
+      });
+      retell.on("error", (err) => {
+        setError(err.message || "Retell call error");
+        setCallState(STATE.IDLE);
+        clearInterval(timerRef.current);
+      });
+
+      await retell.startCall({ accessToken: access_token });
+    } catch (err) {
+      setError("Failed to start Retell call: " + err.message);
+      setCallState(STATE.IDLE);
+    }
+  }
+
   function endCall() {
-    if (vapiRef.current) {
+    if (activeProvider === "retell" && retellRef.current) {
+      retellRef.current.stopCall();
+    } else if (vapiRef.current) {
       vapiRef.current.stop();
     }
   }
@@ -422,28 +477,34 @@ export default function LiveCallPage() {
               <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "14px 16px", color: "#DC2626", fontSize: 13, marginBottom: 16 }}>{error}</div>
             )}
 
+            {/* Provider badge */}
+            {isConfigured && (
+              <div style={{ background: "#fff", borderRadius: 10, border: "1px solid var(--border)", padding: "10px 14px", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 12, color: "#6B7280" }}>Voice provider</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#2079F9" }}>{activeProvider === "retell" ? "Retell AI" : "Vapi.ai"}</span>
+              </div>
+            )}
+
             {/* Setup instructions if not configured */}
-            {!vapiConfigured && (
+            {!isConfigured && (
               <div style={{ background: "#fff", borderRadius: 12, border: "1px solid var(--border)", padding: "20px", boxShadow: "var(--shadow-sm)" }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#1B1C1C", marginBottom: 12 }}>Setup Required</div>
-                <div style={{ fontSize: 12, color: "#6B7280", lineHeight: 1.7 }}>
-                  Add these to <code style={{ background: "#F3F4F6", padding: "1px 4px", borderRadius: 3 }}>.env.local</code>:
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#1B1C1C", marginBottom: 12 }}>Setup Required — {activeProvider === "retell" ? "Retell AI" : "Vapi"}</div>
+                <div style={{ fontSize: 12, color: "#6B7280", lineHeight: 1.7, marginBottom: 10 }}>
+                  Add these to Vercel environment variables:
                 </div>
-                <div style={{ background: "#1B1C1C", borderRadius: 8, padding: "12px 14px", marginTop: 10, fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: "#9CA3AF", lineHeight: 1.8 }}>
-                  <div><span style={{ color: "#00BADA" }}>NEXT_PUBLIC_VAPI_API_KEY</span>=your_key</div>
-                  <div><span style={{ color: "#00BADA" }}>NEXT_PUBLIC_VAPI_ASSISTANT_ID</span>=asst_id</div>
-                  <div style={{ marginTop: 8, color: "#6B7280" }}># Optional: for real phone calls</div>
-                  <div><span style={{ color: "#00BADA" }}>VAPI_WEBHOOK_SECRET</span>=secret</div>
-                </div>
-                <div style={{ marginTop: 14, padding: "10px 12px", background: "#F0FDF4", borderRadius: 8, border: "1px solid #BBF7D0" }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "#16A34A", marginBottom: 6 }}>How to get Vapi credentials</div>
-                  <ol style={{ fontSize: 11.5, color: "#374151", lineHeight: 1.8, paddingLeft: 16, margin: 0 }}>
-                    <li>Sign up at <strong>vapi.ai</strong></li>
-                    <li>Get your API key from Dashboard → Keys</li>
-                    <li>Create an Assistant with Maya's system prompt (see README)</li>
-                    <li>Copy the Assistant ID</li>
-                    <li>Set LLM to Claude claude-sonnet-4-6 in the assistant config</li>
-                  </ol>
+                {activeProvider === "retell" ? (
+                  <div style={{ background: "#1B1C1C", borderRadius: 8, padding: "12px 14px", fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: "#9CA3AF", lineHeight: 1.8 }}>
+                    <div><span style={{ color: "#00BADA" }}>NEXT_PUBLIC_RETELL_API_KEY</span>=your_retell_key</div>
+                    <div><span style={{ color: "#00BADA" }}>NEXT_PUBLIC_RETELL_AGENT_ID</span>=your_agent_id</div>
+                  </div>
+                ) : (
+                  <div style={{ background: "#1B1C1C", borderRadius: 8, padding: "12px 14px", fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: "#9CA3AF", lineHeight: 1.8 }}>
+                    <div><span style={{ color: "#00BADA" }}>NEXT_PUBLIC_VAPI_API_KEY</span>=your_key</div>
+                    <div><span style={{ color: "#00BADA" }}>NEXT_PUBLIC_VAPI_ASSISTANT_ID</span>=asst_id</div>
+                  </div>
+                )}
+                <div style={{ marginTop: 12, fontSize: 12, color: "#6B7280" }}>
+                  Switch providers in <a href="/settings" style={{ color: "#2079F9", fontWeight: 600 }}>Settings</a>.
                 </div>
               </div>
             )}
