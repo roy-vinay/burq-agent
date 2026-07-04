@@ -111,6 +111,7 @@ export default function LiveCallPage() {
   const vapiRef = useRef(null);
   const timerRef = useRef(null);
   const triageOutputRef = useRef(null);
+  const transcriptRef = useRef([]);
 
   const steps = parseSteps(triageText);
   const verdict = triageDone ? extractVerdict(triageText) : null;
@@ -140,6 +141,7 @@ export default function LiveCallPage() {
     setError(null);
     setCallState(STATE.CONNECTING);
     setTranscript([]);
+    transcriptRef.current = [];
     setTriageText("");
     setTriageDone(false);
     setCallDuration(0);
@@ -158,17 +160,18 @@ export default function LiveCallPage() {
       vapi.on("speech-end", () => {});
 
       vapi.on("message", (msg) => {
-        if (msg.type === "transcript") {
-          setTranscript(prev => [...prev, { role: msg.role, text: msg.transcript, final: msg.transcriptType === "final" }]);
+        if (msg.type === "transcript" && msg.transcriptType === "final") {
+          const entry = { role: msg.role, text: msg.transcript, final: true };
+          transcriptRef.current = [...transcriptRef.current, entry];
+          setTranscript(prev => [...prev, entry]);
         }
       });
 
       vapi.on("call-end", async () => {
         clearInterval(timerRef.current);
         setCallState(STATE.ENDED);
-
-        // Give a moment for transcript to settle, then triage
-        setTimeout(() => runTriage(), 1000);
+        // Use ref so we get the actual accumulated transcript, not stale closure
+        setTimeout(() => runTriageWithTranscript(transcriptRef.current), 500);
       });
 
       vapi.on("error", (err) => {
@@ -190,15 +193,13 @@ export default function LiveCallPage() {
     }
   }
 
-  async function runTriage() {
+  async function runTriageWithTranscript(capturedTranscript) {
     setCallState(STATE.TRIAGING);
     setTriageText("");
     setTriageDone(false);
 
-    // Build transcript text from messages
-    const transcriptText = transcript
-      .filter(t => t.final)
-      .map(t => `${t.role === "assistant" ? "Agent" : "Customer"}: ${t.text}`)
+    const transcriptText = capturedTranscript
+      .map(t => `${t.role === "assistant" ? "Maya (Tony's Pizza)" : "Customer"}: ${t.text}`)
       .join("\n\n");
 
     if (!transcriptText.trim()) {
