@@ -56,14 +56,16 @@ export async function POST(req) {
             controller.enqueue(encoder.encode(chunk.delta.text));
           }
         }
-        controller.close();
-
-        // Fire Slack + Supabase after stream completes (non-blocking)
+        // Fire Slack + Supabase before closing stream so Vercel doesn't kill the function
         const verdict = extractVerdict(accumulated);
         if (verdict) {
-          sendSlackNotification({ ...verdict, transcript, source }).catch(() => {});
-          saveCallLog({ source, transcript, triageText: accumulated, ...verdict, durationSeconds }).catch(() => {});
+          await Promise.allSettled([
+            sendSlackNotification({ ...verdict, transcript, source }),
+            saveCallLog({ source, transcript, triageText: accumulated, ...verdict, durationSeconds }),
+          ]);
         }
+
+        controller.close();
       } catch (err) {
         controller.error(err);
       }

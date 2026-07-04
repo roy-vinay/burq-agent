@@ -71,8 +71,10 @@ export async function POST(req) {
     latestCallResult = { callId, transcript, triageText, timestamp: new Date().toISOString() };
 
     if (verdict) {
-      sendSlackNotification({ ...verdict, transcript, source: "live" }).catch(() => {});
-      saveCallLog({ source: "live", transcript, triageText, ...verdict, durationSeconds }).catch(() => {});
+      await Promise.allSettled([
+        sendSlackNotification({ ...verdict, transcript, source: "live" }),
+        saveCallLog({ source: "live", transcript, triageText, ...verdict, durationSeconds }),
+      ]);
     }
 
     return new Response(JSON.stringify({ success: true, callId }), {
