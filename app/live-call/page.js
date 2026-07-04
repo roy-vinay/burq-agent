@@ -256,7 +256,7 @@ export default function LiveCallPage() {
       await vapi.start(process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID, {
         assistantOverrides: {
           firstMessage: `Thank you for calling ${profile.name}, this is ${profile.agentName} speaking. How can I help you today?`,
-          model: { messages: [{ role: "system", content: buildSystemPrompt(profile) }] },
+          model: { systemPrompt: buildSystemPrompt(profile) },
         },
       });
     } catch (err) {
