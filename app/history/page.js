@@ -1,42 +1,31 @@
 "use client";
 import { useState, useEffect } from "react";
+import { RefreshCw, ChevronDown, ChevronUp, Phone, FileText } from "lucide-react";
+import Nav from "../components/Nav";
 import "../globals.css";
 
-const ROUTE_COLORS = {
-  REFUNDS_TEAM: { bg: "#ECFDF5", text: "#059669", border: "#6EE7B7" },
-  OPS_ESCALATION: { bg: "#FEF2F2", text: "#DC2626", border: "#FECACA" },
-  ORDER_DESK: { bg: "#EBF3FF", text: "#2079F9", border: "#93C5FD" },
-  PARTNERSHIPS_TEAM: { bg: "#F5F3FF", text: "#7C3AED", border: "#C4B5FD" },
-  SUPPORT_L1: { bg: "#F3F4F6", text: "#374151", border: "#D1D5DB" },
-  HUMAN_REVIEW: { bg: "#FFFBEB", text: "#D97706", border: "#FCD34D" },
+const ROUTE_META = {
+  REFUNDS_TEAM:      { cls: "badge-green",  label: "Refunds Team" },
+  OPS_ESCALATION:    { cls: "badge-red",    label: "Ops Escalation" },
+  ORDER_DESK:        { cls: "badge-blue",   label: "Order Desk" },
+  PARTNERSHIPS_TEAM: { cls: "badge-purple", label: "Partnerships" },
+  SUPPORT_L1:        { cls: "badge-gray",   label: "Support L1" },
+  HUMAN_REVIEW:      { cls: "badge-amber",  label: "Human Review" },
 };
 
-const NAV_LINKS = [
-  { href: "/", label: "Provider Selection" },
-  { href: "/email-agent", label: "Email Triage" },
-  { href: "/call-triage", label: "Call Triage" },
-  { href: "/live-call", label: "Live Call" },
-  { href: "/history", label: "History", active: true },
-  { href: "/settings", label: "⚙ Settings" },
-];
-
 function RouteTag({ route }) {
-  const colors = ROUTE_COLORS[route] || ROUTE_COLORS.SUPPORT_L1;
-  return (
-    <span style={{ background: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>
-      {route.replace(/_/g, " ")}
-    </span>
-  );
+  const meta = ROUTE_META[route] || ROUTE_META.SUPPORT_L1;
+  return <span className={`badge ${meta.cls}`}>{meta.label}</span>;
 }
 
 function UrgencyBar({ urgency }) {
   const color = urgency >= 8 ? "#DC2626" : urgency >= 5 ? "#F59E0B" : "#10B981";
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-      <div style={{ width: 60, height: 6, borderRadius: 3, background: "#E5E7EB", overflow: "hidden" }}>
-        <div style={{ width: `${urgency * 10}%`, height: "100%", background: color, borderRadius: 3 }} />
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ width: 56, height: 5, borderRadius: 3, background: "#E5E7EB", overflow: "hidden", flexShrink: 0 }}>
+        <div style={{ width: `${urgency * 10}%`, height: "100%", background: color, borderRadius: 3, transition: "width 0.3s" }} />
       </div>
-      <span style={{ fontSize: 11, color, fontWeight: 700 }}>{urgency}</span>
+      <span style={{ fontSize: 12, color, fontWeight: 700, minWidth: 14 }}>{urgency}</span>
     </div>
   );
 }
@@ -46,15 +35,32 @@ function ExpandedRow({ log }) {
   return (
     <tr>
       <td colSpan={7} style={{ padding: 0, borderBottom: "1px solid #E5E7EB" }}>
-        <div style={{ background: "#FAFAFA", padding: "20px 24px" }}>
+        <div style={{ background: "#F8F9FB", borderTop: "1px solid #EFF6FF", padding: "20px 24px" }} className="fade-in">
           <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-            {["triage", "transcript"].map(t => (
-              <button key={t} onClick={() => setTab(t)} style={{ padding: "6px 14px", borderRadius: 6, border: "1px solid #E5E7EB", background: tab === t ? "#1B1C1C" : "#fff", color: tab === t ? "#fff" : "#374151", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                {t === "triage" ? "Triage Analysis" : "Full Transcript"}
+            {[
+              { id: "triage", label: "Triage Analysis", icon: FileText },
+              { id: "transcript", label: "Transcript", icon: Phone },
+            ].map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => setTab(id)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  padding: "6px 14px", borderRadius: 6,
+                  border: "1px solid",
+                  borderColor: tab === id ? "#2563EB" : "#E5E7EB",
+                  background: tab === id ? "#2563EB" : "#fff",
+                  color: tab === id ? "#fff" : "#374151",
+                  fontSize: 12, fontWeight: 600, cursor: "pointer",
+                  transition: "all 0.15s",
+                }}
+              >
+                <Icon size={13} />
+                {label}
               </button>
             ))}
           </div>
-          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, lineHeight: 1.75, color: "#374151", whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 400, overflowY: "auto" }}>
+          <div className="mono" style={{ fontSize: 12, lineHeight: 1.8, color: "#374151", whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 400, overflowY: "auto" }}>
             {tab === "triage" ? log.triage_text : log.transcript}
           </div>
         </div>
@@ -63,18 +69,34 @@ function ExpandedRow({ log }) {
   );
 }
 
+function ConfidenceLabel({ value }) {
+  const color = value >= 80 ? "#059669" : value >= 60 ? "#D97706" : "#DC2626";
+  return <span style={{ fontSize: 13, fontWeight: 700, color }}>{value}%</span>;
+}
+
 export default function HistoryPage() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  function loadLogs() {
+    return fetch("/api/call-history?t=" + Date.now(), { cache: "no-store" })
+      .then(r => r.json())
+      .then(d => { setLogs(d.logs || []); })
+      .catch(e => { setError(e.message); });
+  }
 
   useEffect(() => {
-    fetch("/api/call-history")
-      .then(r => r.json())
-      .then(d => { setLogs(d.logs || []); setLoading(false); })
-      .catch(e => { setError(e.message); setLoading(false); });
+    loadLogs().finally(() => setLoading(false));
   }, []);
+
+  async function refresh() {
+    setRefreshing(true);
+    await loadLogs();
+    setRefreshing(false);
+  }
 
   function formatDate(ts) {
     return new Date(ts).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -87,101 +109,111 @@ export default function HistoryPage() {
     return m > 0 ? `${m}m ${s}s` : `${s}s`;
   }
 
+  const liveCount = logs.filter(l => l.source === "live").length;
+  const manualCount = logs.filter(l => l.source === "manual").length;
+
   return (
-    <>
-      <style>{`
-        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 3px; }
-        .row-btn:hover { background: #F9FAFB !important; }
-      `}</style>
+    <div className="app-layout">
+      <Nav />
+      <div className="app-main">
 
-      <div style={{ minHeight: "100vh", background: "var(--cream)", display: "flex", flexDirection: "column" }}>
-        <header style={{ background: "#fff", borderBottom: "1px solid var(--border)", padding: "0 32px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 100, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ background: "linear-gradient(135deg, #2079F9, #00BADA)", borderRadius: 8, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ color: "#fff", fontSize: 14, fontWeight: 800 }}>B</span>
-            </div>
+        <div className="page-header">
+          <div className="flex-between">
             <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "#1B1C1C", lineHeight: 1.2 }}>Pulse AI</div>
-              <div style={{ fontSize: 11, color: "#6B7280", letterSpacing: "0.04em" }}>Call History</div>
+              <h1 className="page-title">Call History</h1>
+              <p className="page-subtitle">{logs.length} calls triaged{liveCount > 0 ? ` · ${liveCount} live, ${manualCount} manual` : ""}</p>
             </div>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            {NAV_LINKS.map(l => (
-              <a key={l.href} href={l.href} style={{ fontSize: 13, color: l.active ? "#2079F9" : "#6B7280", textDecoration: "none", fontWeight: l.active ? 600 : 500, borderBottom: l.active ? "2px solid #2079F9" : "none", paddingBottom: l.active ? 2 : 0 }}>{l.label}</a>
-            ))}
-          </div>
-        </header>
-
-        <main style={{ flex: 1, maxWidth: 1280, margin: "0 auto", width: "100%", padding: "32px" }}>
-          <div style={{ marginBottom: 24, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: "#1B1C1C" }}>Call History</div>
-              <div style={{ fontSize: 13, color: "#6B7280", marginTop: 2 }}>{logs.length} calls triaged</div>
-            </div>
-            <button onClick={() => { setLoading(true); fetch("/api/call-history").then(r => r.json()).then(d => { setLogs(d.logs || []); setLoading(false); }); }} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #E5E7EB", background: "#fff", fontSize: 13, fontWeight: 600, color: "#374151", cursor: "pointer" }}>
-              Refresh
+            <button className="btn btn-ghost" onClick={refresh} disabled={refreshing}>
+              <RefreshCw size={14} className={refreshing ? "spin" : ""} />
+              {refreshing ? "Refreshing..." : "Refresh"}
             </button>
           </div>
+        </div>
 
+        <div className="page-body-full">
           {loading && (
-            <div style={{ background: "#fff", borderRadius: 12, border: "1px solid var(--border)", padding: "60px", textAlign: "center", color: "#9CA3AF" }}>
-              Loading call history...
+            <div className="card">
+              <div className="empty-state">
+                <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center", color: "#6B7280" }}>
+                  <RefreshCw size={16} className="spin" />
+                  <span style={{ fontSize: 13 }}>Loading call history...</span>
+                </div>
+              </div>
             </div>
           )}
 
           {error && (
-            <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "16px 20px", color: "#DC2626", fontSize: 13 }}>
-              Error loading history: {error}. Make sure SUPABASE_URL and SUPABASE_ANON_KEY are set.
+            <div className="card" style={{ border: "1px solid #FECACA" }}>
+              <div className="card-body" style={{ color: "#DC2626", fontSize: 13 }}>
+                Error loading history: {error}. Make sure SUPABASE_URL and SUPABASE_ANON_KEY are set.
+              </div>
             </div>
           )}
 
           {!loading && !error && logs.length === 0 && (
-            <div style={{ background: "#fff", borderRadius: 12, border: "1px dashed #D1D5DB", padding: "60px", textAlign: "center", color: "#9CA3AF" }}>
-              <div style={{ fontSize: 36, marginBottom: 12 }}>📋</div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: "#6B7280", marginBottom: 8 }}>No calls yet</div>
-              <div style={{ fontSize: 13 }}>Triage a call on the Call Triage or Live Call pages — it will appear here.</div>
+            <div className="card">
+              <div className="empty-state">
+                <div className="empty-state-icon">📋</div>
+                <div className="empty-state-title">No calls yet</div>
+                <div className="empty-state-body">
+                  Triage a call on the Call Triage or Live Call pages. Each one will appear here automatically.
+                </div>
+              </div>
             </div>
           )}
 
           {!loading && logs.length > 0 && (
-            <div style={{ background: "#fff", borderRadius: 12, border: "1px solid var(--border)", overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <div className="card">
+              <table className="data-table">
                 <thead>
-                  <tr style={{ background: "#F9FAFB", borderBottom: "1px solid #E5E7EB" }}>
-                    {["Time", "Source", "Intent", "Route", "Urgency", "Confidence", "Duration"].map(h => (
-                      <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
+                  <tr>
+                    {["Time", "Source", "Intent", "Route", "Urgency", "Confidence", "Duration", ""].map((h, i) => (
+                      <th key={i}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {logs.map(log => (
-                    <>
-                      <tr key={log.id} className="row-btn" onClick={() => setExpandedId(expandedId === log.id ? null : log.id)} style={{ cursor: "pointer", background: expandedId === log.id ? "#F0F7FF" : "#fff", borderBottom: expandedId === log.id ? "none" : "1px solid #F3F4F6", transition: "background 0.1s" }}>
-                        <td style={{ padding: "12px 16px", fontSize: 12, color: "#6B7280", whiteSpace: "nowrap" }}>{formatDate(log.created_at)}</td>
-                        <td style={{ padding: "12px 16px" }}>
-                          <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 12, background: log.source === "live" ? "#EBF3FF" : "#F3F4F6", color: log.source === "live" ? "#2079F9" : "#6B7280" }}>
-                            {log.source === "live" ? "📞 Live" : "📋 Manual"}
-                          </span>
-                        </td>
-                        <td style={{ padding: "12px 16px", fontSize: 12, fontWeight: 600, color: "#374151" }}>{(log.intent || "—").replace(/_/g, " ")}</td>
-                        <td style={{ padding: "12px 16px" }}><RouteTag route={log.route || "SUPPORT_L1"} /></td>
-                        <td style={{ padding: "12px 16px" }}><UrgencyBar urgency={log.urgency || 0} /></td>
-                        <td style={{ padding: "12px 16px", fontSize: 12, fontWeight: 700, color: log.confidence >= 80 ? "#10B981" : log.confidence >= 60 ? "#F59E0B" : "#DC2626" }}>{log.confidence}%</td>
-                        <td style={{ padding: "12px 16px", fontSize: 12, color: "#6B7280" }}>{formatDuration(log.duration_seconds)}</td>
-                      </tr>
-                      {expandedId === log.id && <ExpandedRow key={`exp-${log.id}`} log={log} />}
-                    </>
-                  ))}
+                  {logs.map(log => {
+                    const isExpanded = expandedId === log.id;
+                    return (
+                      <>
+                        <tr
+                          key={log.id}
+                          className={isExpanded ? "expanded" : ""}
+                          onClick={() => setExpandedId(isExpanded ? null : log.id)}
+                          style={{ borderBottom: isExpanded ? "none" : undefined }}
+                        >
+                          <td style={{ color: "#6B7280", whiteSpace: "nowrap", fontSize: 12 }}>{formatDate(log.created_at)}</td>
+                          <td>
+                            <span className={`badge ${log.source === "live" ? "badge-blue" : "badge-gray"}`}>
+                              {log.source === "live" ? "📞 Live" : "📋 Manual"}
+                            </span>
+                          </td>
+                          <td style={{ fontWeight: 600, color: "#1E293B" }}>
+                            {(log.intent || "—").replace(/_/g, " ")}
+                          </td>
+                          <td><RouteTag route={log.route || "SUPPORT_L1"} /></td>
+                          <td><UrgencyBar urgency={log.urgency || 0} /></td>
+                          <td><ConfidenceLabel value={log.confidence} /></td>
+                          <td style={{ color: "#6B7280", fontSize: 12 }}>{formatDuration(log.duration_seconds)}</td>
+                          <td style={{ width: 32, color: "#9CA3AF" }}>
+                            {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                          </td>
+                        </tr>
+                        {isExpanded && <ExpandedRow key={`exp-${log.id}`} log={log} />}
+                      </>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           )}
-        </main>
+        </div>
 
-        <footer style={{ padding: "16px 32px", textAlign: "center", fontSize: 12, color: "#9CA3AF", borderTop: "1px solid var(--border)", background: "#fff" }}>
-          Built on <span style={{ color: "#2079F9", fontWeight: 600 }}>Dispatch</span> · Powered by Claude claude-sonnet-4-6
+        <footer className="page-footer">
+          Built on <span style={{ color: "var(--blue)", fontWeight: 600 }}>Dispatch</span> · Powered by Claude claude-sonnet-4-6
         </footer>
       </div>
-    </>
+    </div>
   );
 }

@@ -1,13 +1,13 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
+import { Zap, Mail } from "lucide-react";
+import Nav from "../components/Nav";
 import "../globals.css";
 
 const SCENARIOS = [
   {
     label: "Insulin Left Outside",
     emoji: "🚨",
-    type: "DAMAGED_GOODS",
-    description: "Medical — high severity",
     color: "#DC2626",
     email: `From: Margaret Chen <mchen@email.com>
 To: support@safeway.com
@@ -27,8 +27,6 @@ Order #SF-20260703-4421`,
   {
     label: "Repeated Late Deliveries",
     emoji: "⚠️",
-    type: "SLA_BREACH",
-    description: "Pattern — provider issue",
     color: "#F59E0B",
     email: `From: ops@kroger-sunnyvale.com
 To: partnerships@dispatch.example
@@ -50,8 +48,6 @@ Operations Manager, Kroger Sunnyvale`,
   {
     label: "Suspicious Completion",
     emoji: "🔍",
-    type: "FRAUD_SUSPICION",
-    description: "Fraud flag — needs review",
     color: "#7C3AED",
     email: `From: david.park@gmail.com
 To: help@albertsons.com
@@ -67,15 +63,11 @@ This is the second time in 3 weeks this has happened with the same delivery serv
 
 I want a refund and I want this investigated. I am also going to dispute with my credit card if I do not hear back today.
 
-David Park
-847 Maple Street
-Campbell, CA 95008`,
+David Park`,
   },
   {
     label: "Vague Angry Customer",
     emoji: "😤",
-    type: "WISMO",
-    description: "Messy — ambiguous intent",
     color: "#6B7280",
     email: `From: tammyb_1977@hotmail.com
 Subject: THIS IS RIDICULOUS
@@ -89,8 +81,6 @@ tammy`,
   {
     label: "Floral Damage",
     emoji: "🌸",
-    type: "DAMAGED_GOODS",
-    description: "Event delivery — time sensitive",
     color: "#EC4899",
     email: `From: roberto.vasquez@email.com
 To: orders@1800flowers.com
@@ -100,7 +90,7 @@ I ordered a bridal bouquet and centerpiece arrangements for my daughter's weddin
 
 The wedding is at 2pm today. We have 4 hours.
 
-Order #FLR-20260703-0092. I paid $890 for these arrangements. I need either a replacement delivery immediately or a full refund. I cannot have my daughter walk down the aisle with a crushed bouquet.
+Order #FLR-20260703-0092. I paid $890 for these arrangements. I need either a replacement delivery immediately or a full refund.
 
 Roberto Vasquez
 (408) 555-0134`,
@@ -109,19 +99,19 @@ Roberto Vasquez
 
 const STEP_LABELS = ["Email Parse", "Issue Classification", "Severity Assessment", "Recommended Action", "Draft Output"];
 const STEP_COLORS = [
-  { bg: "#EBF3FF", border: "#2079F9", text: "#2079F9", num: "#2079F9" },
+  { bg: "#EFF6FF", border: "#2563EB", text: "#2563EB", num: "#2563EB" },
   { bg: "#FFF7ED", border: "#F97316", text: "#EA580C", num: "#F97316" },
-  { bg: "#F0FDF4", border: "#22C55E", text: "#16A34A", num: "#22C55E" },
-  { bg: "#F5F3FF", border: "#8B5CF6", text: "#7C3AED", num: "#8B5CF6" },
-  { bg: "#E6F9FD", border: "#00BADA", text: "#0891B2", num: "#00BADA" },
+  { bg: "#F0FDF4", border: "#16A34A", text: "#15803D", num: "#16A34A" },
+  { bg: "#F5F3FF", border: "#7C3AED", text: "#6D28D9", num: "#7C3AED" },
+  { bg: "#ECFEFF", border: "#0891B2", text: "#0E7490", num: "#0891B2" },
 ];
 
 const ACTION_COLORS = {
-  INITIATE_REFUND: { bg: "#ECFDF5", text: "#059669", border: "#6EE7B7" },
+  INITIATE_REFUND:   { bg: "#ECFDF5", text: "#059669", border: "#6EE7B7" },
   ESCALATE_PROVIDER: { bg: "#FFF7ED", text: "#D97706", border: "#FCD34D" },
-  REROUTE_ORDER: { bg: "#EBF3FF", text: "#2079F9", border: "#93C5FD" },
-  DRAFT_APOLOGY: { bg: "#F5F3FF", text: "#7C3AED", border: "#C4B5FD" },
-  FLAG_FRAUD: { bg: "#FEF2F2", text: "#DC2626", border: "#FECACA" },
+  REROUTE_ORDER:     { bg: "#EFF6FF", text: "#2563EB", border: "#93C5FD" },
+  DRAFT_APOLOGY:     { bg: "#F5F3FF", text: "#7C3AED", border: "#C4B5FD" },
+  FLAG_FRAUD:        { bg: "#FEF2F2", text: "#DC2626", border: "#FECACA" },
   FLAG_HUMAN_REVIEW: { bg: "#F3F4F6", text: "#374151", border: "#D1D5DB" },
 };
 
@@ -130,10 +120,10 @@ function parseSteps(text) {
   const steps = [];
   let currentStep = null;
   for (const part of parts) {
-    const headerMatch = part.match(/\*\*STEP (\d+): ([^*]+)\*\*/);
-    if (headerMatch) {
+    const m = part.match(/\*\*STEP (\d+): ([^*]+)\*\*/);
+    if (m) {
       if (currentStep) steps.push(currentStep);
-      currentStep = { num: parseInt(headerMatch[1]), label: headerMatch[2].trim(), content: "" };
+      currentStep = { num: parseInt(m[1]), label: m[2].trim(), content: "" };
     } else if (currentStep) {
       currentStep.content += part;
     }
@@ -143,67 +133,60 @@ function parseSteps(text) {
 }
 
 function extractVerdict(text) {
-  const match = text.match(/ACTION:\s*([A-Z_]+)\s*\|\s*SEVERITY:\s*(\d+)\s*\|\s*CONFIDENCE:\s*(\d+)%/i);
-  if (!match) return null;
-  return { action: match[1], severity: parseInt(match[2]), confidence: parseInt(match[3]) };
+  const m = text.match(/ACTION:\s*([A-Z_]+)\s*\|\s*SEVERITY:\s*(\d+)\s*\|\s*CONFIDENCE:\s*(\d+)%/i);
+  if (!m) return null;
+  return { action: m[1], severity: parseInt(m[2]), confidence: parseInt(m[3]) };
 }
 
-function StepCard({ step, index, isActive }) {
-  const colors = STEP_COLORS[index] || STEP_COLORS[0];
+function StepCard({ step, isActive }) {
+  const colors = STEP_COLORS[step.num - 1] || STEP_COLORS[0];
   return (
-    <div style={{ background: colors.bg, border: `1.5px solid ${isActive ? colors.border : "#E5E7EB"}`, borderRadius: 10, padding: "16px 20px", marginBottom: 12, transition: "border-color 0.3s" }}>
+    <div style={{ background: colors.bg, border: `1.5px solid ${isActive ? colors.border : "var(--border)"}`, borderRadius: "var(--radius)", padding: "16px 20px", marginBottom: 10, transition: "border-color 0.25s" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-        <div style={{ width: 28, height: 28, borderRadius: "50%", background: colors.num, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{step.num}</div>
+        <div style={{ width: 26, height: 26, borderRadius: "50%", background: colors.num, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{step.num}</div>
         <span style={{ fontWeight: 600, fontSize: 13, color: colors.text }}>{STEP_LABELS[step.num - 1] || step.label}</span>
-        {isActive && <span style={{ marginLeft: "auto", width: 8, height: 8, borderRadius: "50%", background: colors.border, animation: "pulse 1s infinite", flexShrink: 0 }} />}
+        {isActive && <span className="pulse-dot" style={{ marginLeft: "auto", width: 8, height: 8, borderRadius: "50%", background: colors.border, flexShrink: 0 }} />}
       </div>
-      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5, lineHeight: 1.75, color: "#374151", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-        {step.content.trim() || (isActive ? "Analyzing..." : "")}
-      </div>
+      <div className="step-content">{step.content.trim() || (isActive ? "Analyzing..." : "")}</div>
     </div>
   );
 }
 
 function VerdictCard({ verdict }) {
   const colors = ACTION_COLORS[verdict.action] || ACTION_COLORS.FLAG_HUMAN_REVIEW;
-  const severityColor = verdict.severity >= 8 ? "#DC2626" : verdict.severity >= 5 ? "#F59E0B" : "#10B981";
-  const confidenceColor = verdict.confidence >= 80 ? "#10B981" : verdict.confidence >= 60 ? "#F59E0B" : "#DC2626";
+  const severityColor = verdict.severity >= 8 ? "#DC2626" : verdict.severity >= 5 ? "#D97706" : "#059669";
+  const confidenceColor = verdict.confidence >= 80 ? "#059669" : verdict.confidence >= 60 ? "#D97706" : "#DC2626";
 
   return (
-    <div style={{ background: "linear-gradient(135deg, #1B1C1C 0%, #2C2D2D 100%)", borderRadius: 12, padding: "20px 24px", marginTop: 8, boxShadow: "0 8px 32px rgba(0,0,0,0.18)" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-        <div style={{ background: "#00BADA", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, color: "#fff", letterSpacing: "0.06em", textTransform: "uppercase" }}>Triage Decision</div>
+    <div className="verdict-card fade-in">
+      <div style={{ marginBottom: 16 }}>
+        <span style={{ background: "#0891B2", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, color: "#fff", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+          Triage Decision
+        </span>
       </div>
-
-      <div style={{ display: "inline-block", background: colors.bg, border: `1.5px solid ${colors.border}`, borderRadius: 8, padding: "8px 16px", marginBottom: 16 }}>
+      <div style={{ display: "inline-block", background: colors.bg, border: `1.5px solid ${colors.border}`, borderRadius: 8, padding: "8px 16px", marginBottom: 18 }}>
         <span style={{ fontSize: 15, fontWeight: 700, color: colors.text }}>{verdict.action.replace(/_/g, " ")}</span>
       </div>
-
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-        <div style={statStyle}>
-          <span style={statLabel}>Severity</span>
-          <span style={{ ...statValueBase, color: severityColor }}>{verdict.severity} / 10</span>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <div className="stat-block">
+          <span className="stat-label">Severity</span>
+          <span style={{ fontSize: 17, fontWeight: 700, color: severityColor }}>{verdict.severity} / 10</span>
         </div>
-        <div style={statStyle}>
-          <span style={statLabel}>Confidence</span>
-          <span style={{ ...statValueBase, color: confidenceColor }}>{verdict.confidence}%</span>
+        <div className="stat-block">
+          <span className="stat-label">Confidence</span>
+          <span style={{ fontSize: 17, fontWeight: 700, color: confidenceColor }}>{verdict.confidence}%</span>
         </div>
-        <div style={statStyle}>
-          <span style={statLabel}>Routed By</span>
-          <span style={{ ...statValueBase, color: "#00BADA" }}>Pulse AI</span>
+        <div className="stat-block">
+          <span className="stat-label">Triaged By</span>
+          <span className="stat-value">Pulse AI</span>
         </div>
       </div>
-
-      <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.1)", fontSize: 12, color: "rgba(255,255,255,0.5)", fontFamily: "'JetBrains Mono', monospace" }}>
+      <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.08)", fontSize: 11, color: "rgba(255,255,255,0.4)", fontFamily: "'JetBrains Mono', monospace" }}>
         Triaged automatically in &lt;2s · No human review required
       </div>
     </div>
   );
 }
-
-const statStyle = { background: "rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 14px", display: "flex", flexDirection: "column", gap: 2 };
-const statLabel = { fontSize: 11, color: "rgba(255,255,255,0.5)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.05em" };
-const statValueBase = { fontSize: 16, fontWeight: 700 };
 
 export default function EmailAgent() {
   const [emailText, setEmailText] = useState(SCENARIOS[0].email);
@@ -235,7 +218,6 @@ export default function EmailAgent() {
     setFullText("");
     setDone(false);
     setError(null);
-
     try {
       const res = await fetch("/api/triage-email", {
         method: "POST",
@@ -245,12 +227,12 @@ export default function EmailAgent() {
       if (!res.ok) throw new Error(`API error ${res.status}`);
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
-      let accumulated = "";
+      let acc = "";
       while (true) {
-        const { done: streamDone, value } = await reader.read();
-        if (streamDone) break;
-        accumulated += decoder.decode(value, { stream: true });
-        setFullText(accumulated);
+        const { done: d, value } = await reader.read();
+        if (d) break;
+        acc += decoder.decode(value, { stream: true });
+        setFullText(acc);
       }
       setDone(true);
     } catch (err) {
@@ -261,111 +243,107 @@ export default function EmailAgent() {
   }
 
   return (
-    <>
-      <style>{`
-        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.3); } }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .run-btn:hover:not(:disabled) { background: #1560D4 !important; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(32,121,249,0.35) !important; }
-        .scenario-btn:hover { opacity: 0.9; transform: translateY(-1px); }
-        textarea:focus { border-color: #2079F9 !important; box-shadow: 0 0 0 3px rgba(32,121,249,0.1); outline: none; }
-        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 3px; }
-      `}</style>
+    <div className="app-layout">
+      <Nav />
+      <div className="app-main">
 
-      <div style={{ minHeight: "100vh", background: "var(--cream)", display: "flex", flexDirection: "column" }}>
-
-        {/* Header */}
-        <header style={{ background: "#fff", borderBottom: "1px solid var(--border)", padding: "0 32px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 100, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ background: "linear-gradient(135deg, #2079F9, #00BADA)", borderRadius: 8, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ color: "#fff", fontSize: 14, fontWeight: 800 }}>B</span>
-            </div>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "#1B1C1C", lineHeight: 1.2 }}>Pulse AI</div>
-              <div style={{ fontSize: 11, color: "#6B7280", letterSpacing: "0.04em" }}>Email Triage Agent</div>
+        {/* Page header + scenario bar */}
+        <div className="page-header" style={{ padding: "0" }}>
+          <div style={{ padding: "20px 28px 16px", borderBottom: "1px solid var(--border)" }}>
+            <div className="flex-between">
+              <div>
+                <h1 className="page-title">Email Triage</h1>
+                <p className="page-subtitle">Classify, score, and route inbound customer emails automatically.</p>
+              </div>
             </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <a href="/" style={{ fontSize: 13, color: "#6B7280", textDecoration: "none", fontWeight: 500 }}>Provider Selection</a>
-            <a href="/email-agent" style={{ fontSize: 13, color: "#2079F9", textDecoration: "none", fontWeight: 600, borderBottom: "2px solid #2079F9", paddingBottom: 2 }}>Email Triage</a>
-            <a href="/call-triage" style={{ fontSize: 13, color: "#6B7280", textDecoration: "none", fontWeight: 500 }}>Call Triage</a>
-            <a href="/live-call" style={{ fontSize: 13, color: "#6B7280", textDecoration: "none", fontWeight: 500 }}>Live Call</a>
-            <a href="/history" style={{ fontSize: 13, color: "#6B7280", textDecoration: "none", fontWeight: 500 }}>History</a>
-            <a href="/settings" style={{ fontSize: 13, color: "#6B7280", textDecoration: "none", fontWeight: 500 }}>⚙ Settings</a>
+          <div style={{ padding: "10px 28px", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", background: "var(--gray-50)" }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: "var(--gray-400)", textTransform: "uppercase", letterSpacing: "0.08em", marginRight: 4 }}>Scenarios</span>
+            {SCENARIOS.map((s, i) => (
+              <button
+                key={i}
+                className="scenario-btn"
+                onClick={() => loadScenario(i)}
+                style={{
+                  borderColor: activeScenario === i ? s.color : "var(--border)",
+                  background: activeScenario === i ? s.color + "15" : "#fff",
+                  color: activeScenario === i ? s.color : "var(--gray-700)",
+                }}
+              >
+                <span>{s.emoji}</span>
+                <span>{s.label}</span>
+              </button>
+            ))}
           </div>
-        </header>
-
-        {/* Scenario Presets */}
-        <div style={{ background: "#fff", borderBottom: "1px solid var(--border)", padding: "12px 32px", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <span style={{ fontSize: 11, fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em", marginRight: 4 }}>Quick Load</span>
-          {SCENARIOS.map((s, i) => (
-            <button key={i} className="scenario-btn" onClick={() => loadScenario(i)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 20, border: `1.5px solid ${activeScenario === i ? s.color : "#E5E7EB"}`, background: activeScenario === i ? s.color + "14" : "#fff", color: activeScenario === i ? s.color : "#374151", fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 0.15s" }}>
-              <span>{s.emoji}</span>
-              <span>{s.label}</span>
-            </button>
-          ))}
         </div>
 
-        {/* Main */}
-        <main style={{ flex: 1, display: "grid", gridTemplateColumns: "440px 1fr", gap: 24, maxWidth: 1280, margin: "0 auto", width: "100%", padding: "24px 32px", alignItems: "start" }}>
+        {/* Main content */}
+        <div style={{ flex: 1, display: "grid", gridTemplateColumns: "420px 1fr", gap: 24, padding: "24px 28px", alignItems: "start" }}>
 
-          {/* Left: Email Input */}
-          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid var(--border)", overflow: "hidden", boxShadow: "var(--shadow-sm)", position: "sticky", top: 120 }}>
-            <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "#1B1C1C" }}>Incoming Email</span>
-              <span style={{ fontSize: 11, color: "#9CA3AF" }}>Paste or type any email</span>
+          {/* Left: email input */}
+          <div className="card" style={{ position: "sticky", top: 24 }}>
+            <div className="card-header">
+              <span className="card-header-title">Incoming Email</span>
+              <span style={{ fontSize: 11, color: "var(--gray-400)" }}>Paste or type any email</span>
             </div>
-
-            <div style={{ padding: "20px" }}>
+            <div className="card-body">
               <textarea
+                className="form-textarea mono"
                 value={emailText}
                 onChange={e => { setEmailText(e.target.value); setActiveScenario(null); }}
                 placeholder="Paste a customer complaint, merchant escalation, or delivery issue email here..."
-                style={{ width: "100%", height: 340, padding: "12px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 12.5, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1.7, color: "#374151", resize: "vertical", transition: "border-color 0.2s", background: "#FAFAFA" }}
+                style={{ height: 340, fontSize: 12, lineHeight: 1.75 }}
               />
-
-              <button className="run-btn" onClick={runAgent} disabled={streaming || !emailText.trim()} style={{ width: "100%", marginTop: 14, background: streaming ? "#9CA3AF" : "#2079F9", color: "#fff", border: "none", borderRadius: 8, padding: "12px 0", fontSize: 14, fontWeight: 700, cursor: streaming ? "not-allowed" : "pointer", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              <button
+                className="btn btn-primary btn-lg w-full"
+                style={{ marginTop: 14, justifyContent: "center" }}
+                onClick={runAgent}
+                disabled={streaming || !emailText.trim()}
+              >
                 {streaming ? (
-                  <><div style={{ width: 15, height: 15, border: "2px solid rgba(255,255,255,0.3)", borderTop: "2px solid #fff", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />Triaging Email...</>
+                  <><div style={{ width: 15, height: 15, border: "2px solid rgba(255,255,255,0.3)", borderTop: "2px solid #fff", borderRadius: "50%" }} className="spin" />Triaging email...</>
                 ) : (
-                  <><span style={{ fontSize: 16 }}>⚡</span>Triage This Email</>
+                  <><Mail size={16} />Triage This Email</>
                 )}
               </button>
             </div>
           </div>
 
-          {/* Right: Agent Output */}
+          {/* Right: output */}
           <div ref={outputRef}>
             {!fullText && !streaming && (
-              <div style={{ background: "#fff", borderRadius: 12, border: "1px dashed #D1D5DB", padding: "60px 40px", textAlign: "center", color: "#9CA3AF" }}>
-                <div style={{ fontSize: 40, marginBottom: 16 }}>📧</div>
-                <div style={{ fontSize: 15, fontWeight: 600, color: "#6B7280", marginBottom: 8 }}>Triage Agent is ready</div>
-                <div style={{ fontSize: 13 }}>Load a scenario or paste your own email, then hit "Triage This Email" to watch the agent classify, score, and act in real time.</div>
+              <div className="card">
+                <div className="empty-state">
+                  <div className="empty-state-icon">📧</div>
+                  <div className="empty-state-title">Triage Agent is ready</div>
+                  <div className="empty-state-body">Load a scenario or paste your own email, then click "Triage This Email" to watch the agent classify, score, and route in real time.</div>
+                </div>
               </div>
             )}
-
             {error && (
-              <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "16px 20px", color: "#DC2626", fontSize: 13 }}>Error: {error}</div>
+              <div className="card" style={{ border: "1px solid #FECACA" }}>
+                <div className="card-body" style={{ color: "var(--danger)", fontSize: 13 }}>Error: {error}</div>
+              </div>
             )}
-
             {steps.length > 0 && (
               <div>
-                <div style={{ marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Agent Reasoning</div>
-                  <div style={{ fontSize: 12, color: "#9CA3AF" }}>{steps.length} / 5 steps</div>
+                <div className="flex-between" style={{ marginBottom: 14 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--gray-700)" }}>Agent Reasoning</span>
+                  <span style={{ fontSize: 12, color: "var(--gray-400)" }}>{steps.length} / 5 steps</span>
                 </div>
                 {steps.map((step, i) => (
-                  <StepCard key={step.num} step={step} index={step.num - 1} isActive={streaming && i === steps.length - 1} />
+                  <StepCard key={step.num} step={step} isActive={streaming && i === steps.length - 1} />
                 ))}
                 {verdict && <VerdictCard verdict={verdict} />}
               </div>
             )}
           </div>
-        </main>
+        </div>
 
-        <footer style={{ padding: "16px 32px", textAlign: "center", fontSize: 12, color: "#9CA3AF", borderTop: "1px solid var(--border)", background: "#fff" }}>
-          Built on <span style={{ color: "#2079F9", fontWeight: 600 }}>Dispatch</span> · Powered by Claude claude-sonnet-4-6
+        <footer className="page-footer">
+          Built on <span style={{ color: "var(--blue)", fontWeight: 600 }}>Dispatch</span> · Powered by Claude claude-sonnet-4-6
         </footer>
       </div>
-    </>
+    </div>
   );
 }

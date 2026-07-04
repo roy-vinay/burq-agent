@@ -1,5 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
+import { Zap } from "lucide-react";
+import Nav from "./components/Nav";
 import "./globals.css";
 
 const MERCHANTS = [
@@ -144,17 +146,15 @@ function extractRecommendation(text) {
 function StepCard({ step, index, isActive }) {
   const colors = STEP_COLORS[index] || STEP_COLORS[0];
   return (
-    <div style={{ background: colors.bg, border: `1.5px solid ${isActive ? colors.border : "#E5E7EB"}`, borderRadius: 10, padding: "16px 20px", marginBottom: 12, transition: "border-color 0.3s" }}>
+    <div style={{ background: colors.bg, border: `1.5px solid ${isActive ? colors.border : "var(--border)"}`, borderRadius: "var(--radius)", padding: "16px 20px", marginBottom: 10, transition: "border-color 0.25s" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-        <div style={{ width: 28, height: 28, borderRadius: "50%", background: colors.num, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+        <div style={{ width: 26, height: 26, borderRadius: "50%", background: colors.num, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
           {step.num}
         </div>
         <span style={{ fontWeight: 600, fontSize: 13, color: colors.text }}>{STEP_LABELS[step.num - 1] || step.label}</span>
-        {isActive && <span style={{ marginLeft: "auto", width: 8, height: 8, borderRadius: "50%", background: colors.border, animation: "pulse 1s infinite", flexShrink: 0 }} />}
+        {isActive && <span className="pulse-dot" style={{ marginLeft: "auto", width: 8, height: 8, borderRadius: "50%", background: colors.border, flexShrink: 0 }} />}
       </div>
-      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5, lineHeight: 1.75, color: "#374151", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-        {step.content.trim() || (isActive ? "Analyzing..." : "")}
-      </div>
+      <div className="step-content">{step.content.trim() || (isActive ? "Analyzing..." : "")}</div>
     </div>
   );
 }
@@ -164,28 +164,23 @@ function RecommendationCard({ provider, fullText }) {
   const otMatch = fullText.match(/(?:on.?time probability|on.?time rate|reliability)[*\s:]+(\d+)%/i) || fullText.match(/(\d+)%\s*on.?time/i);
   const etaMatch = fullText.match(/(?:pickup eta|pickup)[*\s:~]+(\d+)\s*min/i) || fullText.match(/~(\d+)\s*min(?:ute)?s?\s*(?:pickup|ETA)/i);
   return (
-    <div style={{ background: "linear-gradient(135deg, #1B1C1C 0%, #2C2D2D 100%)", borderRadius: 12, padding: "20px 24px", marginTop: 8, boxShadow: "0 8px 32px rgba(0,0,0,0.18)" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-        <div style={{ background: "#00BADA", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, color: "#fff", letterSpacing: "0.06em", textTransform: "uppercase" }}>Selected Provider</div>
+    <div className="verdict-card fade-in" style={{ marginTop: 6 }}>
+      <div style={{ marginBottom: 14 }}>
+        <span style={{ background: "#0891B2", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, color: "#fff", letterSpacing: "0.06em", textTransform: "uppercase" }}>Selected Provider</span>
       </div>
-      <div style={{ fontSize: 22, fontWeight: 700, color: "#fff", marginBottom: 14 }}>{provider}</div>
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-        {costMatch && <div style={statStyle}><span style={statLabel}>Est. Cost</span><span style={statValue}>{costMatch[1]}</span></div>}
-        {otMatch && <div style={statStyle}><span style={statLabel}>On-Time Rate</span><span style={statValue}>{otMatch[1]}%</span></div>}
-        {etaMatch && <div style={statStyle}><span style={statLabel}>Pickup ETA</span><span style={statValue}>{etaMatch[1]} min</span></div>}
+      <div style={{ fontSize: 20, fontWeight: 700, color: "#F1F5F9", marginBottom: 16 }}>{provider}</div>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        {costMatch && <div className="stat-block"><span className="stat-label">Est. Cost</span><span className="stat-value">{costMatch[1]}</span></div>}
+        {otMatch && <div className="stat-block"><span className="stat-label">On-Time Rate</span><span className="stat-value">{otMatch[1]}%</span></div>}
+        {etaMatch && <div className="stat-block"><span className="stat-label">Pickup ETA</span><span className="stat-value">{etaMatch[1]} min</span></div>}
       </div>
-      <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.1)", fontSize: 12, color: "rgba(255,255,255,0.5)", fontFamily: "'JetBrains Mono', monospace" }}>
+      <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.08)", fontSize: 11, color: "rgba(255,255,255,0.4)", fontFamily: "'JetBrains Mono', monospace" }}>
         Decision made by Pulse AI in &lt;100ms
       </div>
     </div>
   );
 }
 
-const statStyle = { background: "rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 14px", display: "flex", flexDirection: "column", gap: 2 };
-const statLabel = { fontSize: 11, color: "rgba(255,255,255,0.5)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.05em" };
-const statValue = { fontSize: 16, fontWeight: 700, color: "#00BADA" };
-const labelStyle = { fontSize: 11, fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 5 };
-const selectStyle = { width: "100%", padding: "8px 10px", borderRadius: 7, border: "1px solid #E5E7EB", fontSize: 13, color: "#1B1C1C", background: "#fff", cursor: "pointer", outline: "none" };
 
 export default function Home() {
   const [merchantIdx, setMerchantIdx] = useState(0);
@@ -271,124 +266,96 @@ export default function Home() {
   const currentItem = ITEM_TYPES[itemIdx];
 
   return (
-    <>
-      <style>{`
-        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.3); } }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .run-btn:hover:not(:disabled) { background: #1560D4 !important; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(32,121,249,0.35) !important; }
-        .scenario-btn:hover { opacity: 0.9; transform: translateY(-1px); }
-        select:focus { border-color: #2079F9 !important; box-shadow: 0 0 0 3px rgba(32,121,249,0.1); }
-        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 3px; }
-      `}</style>
+    <div className="app-layout">
+      <Nav />
+      <div className="app-main">
 
-      <div style={{ minHeight: "100vh", background: "var(--cream)", display: "flex", flexDirection: "column" }}>
-
-        {/* Header */}
-        <header style={{ background: "#fff", borderBottom: "1px solid var(--border)", padding: "0 32px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 100, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ background: "linear-gradient(135deg, #2079F9, #00BADA)", borderRadius: 8, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ color: "#fff", fontSize: 14, fontWeight: 800 }}>B</span>
-            </div>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "#1B1C1C", lineHeight: 1.2 }}>Pulse AI</div>
-              <div style={{ fontSize: 11, color: "#6B7280", letterSpacing: "0.04em" }}>Provider Selection Agent</div>
+        {/* Page header + scenario bar */}
+        <div className="page-header" style={{ padding: 0 }}>
+          <div style={{ padding: "20px 28px 16px", borderBottom: "1px solid var(--border)" }}>
+            <div className="flex-between">
+              <div>
+                <h1 className="page-title">Provider Selection</h1>
+                <p className="page-subtitle">AI-powered last-mile delivery provider selection for delivery merchants.</p>
+              </div>
+              <div className="badge badge-green" style={{ gap: 6, padding: "5px 12px" }}>
+                <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#10B981" }} />
+                Live Network · 487 Providers
+              </div>
             </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-            <div style={{ display: "flex", gap: 16 }}>
-              <a href="/" style={{ fontSize: 13, color: "#2079F9", textDecoration: "none", fontWeight: 600, borderBottom: "2px solid #2079F9", paddingBottom: 2 }}>Provider Selection</a>
-              <a href="/email-agent" style={{ fontSize: 13, color: "#6B7280", textDecoration: "none", fontWeight: 500 }}>Email Triage</a>
-              <a href="/call-triage" style={{ fontSize: 13, color: "#6B7280", textDecoration: "none", fontWeight: 500 }}>Call Triage</a>
-              <a href="/live-call" style={{ fontSize: 13, color: "#6B7280", textDecoration: "none", fontWeight: 500 }}>Live Call</a>
-              <a href="/history" style={{ fontSize: 13, color: "#6B7280", textDecoration: "none", fontWeight: 500 }}>History</a>
-              <a href="/settings" style={{ fontSize: 13, color: "#6B7280", textDecoration: "none", fontWeight: 500 }}>⚙ Settings</a>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#F0FDF4", border: "1px solid #86EFAC", borderRadius: 20, padding: "4px 12px", fontSize: 12, color: "#16A34A", fontWeight: 600 }}>
-              <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#22C55E" }} />
-              Live Network · 487 Providers Active
-            </div>
+          <div style={{ padding: "10px 28px", display: "flex", gap: 8, alignItems: "center", background: "var(--gray-50)" }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: "var(--gray-400)", textTransform: "uppercase", letterSpacing: "0.08em", marginRight: 4 }}>Scenarios</span>
+            {SCENARIOS.map((s, i) => (
+              <button key={i} className="scenario-btn" onClick={() => loadScenario(i)} style={{ borderColor: activeScenario === i ? s.color : "var(--border)", background: activeScenario === i ? s.color + "15" : "#fff", color: activeScenario === i ? s.color : "var(--gray-700)" }}>
+                <span>{s.emoji}</span>
+                <span>{s.label}</span>
+              </button>
+            ))}
           </div>
-        </header>
-
-        {/* Scenario Presets */}
-        <div style={{ background: "#fff", borderBottom: "1px solid var(--border)", padding: "12px 32px", display: "flex", gap: 10, alignItems: "center" }}>
-          <span style={{ fontSize: 11, fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em", marginRight: 4 }}>Quick Load</span>
-          {SCENARIOS.map((s, i) => (
-            <button key={i} className="scenario-btn" onClick={() => loadScenario(i)} style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 14px", borderRadius: 20, border: `1.5px solid ${activeScenario === i ? s.color : "#E5E7EB"}`, background: activeScenario === i ? s.color + "14" : "#fff", color: activeScenario === i ? s.color : "#374151", fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 0.15s" }}>
-              <span>{s.emoji}</span>
-              <span>{s.label}</span>
-              {activeScenario === i && <span style={{ fontSize: 10, opacity: 0.7 }}>— {s.description}</span>}
-            </button>
-          ))}
         </div>
 
         {/* Main */}
-        <main style={{ flex: 1, display: "grid", gridTemplateColumns: "400px 1fr", gap: 24, maxWidth: 1280, margin: "0 auto", width: "100%", padding: "24px 32px", alignItems: "start" }}>
+        <div style={{ flex: 1, display: "grid", gridTemplateColumns: "400px 1fr", gap: 24, padding: "24px 28px", alignItems: "start" }}>
 
           {/* Left: Order Config */}
-          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid var(--border)", overflow: "hidden", boxShadow: "var(--shadow-sm)", position: "sticky", top: 120 }}>
-            <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "#1B1C1C" }}>Order Configuration</span>
-              <span style={{ background: currentItem.priority === "High" ? "#FEF3C7" : currentItem.priority === "Medium" ? "#EBF3FF" : "#F3F4F6", color: currentItem.priority === "High" ? "#D97706" : currentItem.priority === "Medium" ? "#2079F9" : "#6B7280", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>
-                {currentItem.priority.toUpperCase()} PRIORITY
+          <div className="card" style={{ position: "sticky", top: 24 }}>
+            <div className="card-header">
+              <span className="card-header-title">Order Configuration</span>
+              <span className={`badge ${currentItem.priority === "High" ? "badge-amber" : currentItem.priority === "Medium" ? "badge-blue" : "badge-gray"}`}>
+                {currentItem.priority} Priority
               </span>
             </div>
 
-            <div style={{ padding: "20px" }}>
+            <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
-              {/* Merchant */}
-              <div style={{ marginBottom: 14 }}>
-                <label style={labelStyle}>Merchant</label>
-                <select style={selectStyle} value={merchantIdx} onChange={e => setMerchantIdx(Number(e.target.value))}>
+              <div>
+                <label className="form-label">Merchant</label>
+                <select className="form-select" value={merchantIdx} onChange={e => setMerchantIdx(Number(e.target.value))}>
                   {MERCHANTS.map((m, i) => <option key={i} value={i}>{m.name}</option>)}
                 </select>
-                <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4 }}>{MERCHANTS[merchantIdx].location}</div>
+                <div style={{ fontSize: 11, color: "var(--gray-400)", marginTop: 4 }}>{MERCHANTS[merchantIdx].location}</div>
               </div>
 
-              {/* Item Type */}
-              <div style={{ marginBottom: 14 }}>
-                <label style={labelStyle}>Item Type</label>
-                <select style={{ ...selectStyle, color: "#2079F9", fontWeight: 500 }} value={itemIdx} onChange={e => handleItemChange(Number(e.target.value))}>
+              <div>
+                <label className="form-label">Item Type</label>
+                <select className="form-select" style={{ color: "var(--blue)", fontWeight: 500 }} value={itemIdx} onChange={e => handleItemChange(Number(e.target.value))}>
                   {ITEM_TYPES.map((t, i) => <option key={i} value={i}>{t.label}</option>)}
                 </select>
               </div>
 
-              {/* Delivery Address */}
-              <div style={{ marginBottom: 14 }}>
-                <label style={labelStyle}>Delivery Address</label>
-                <div style={{ fontSize: 13, fontWeight: 500, color: "#1B1C1C" }}>{MERCHANTS[merchantIdx].delivery}</div>
+              <div>
+                <label className="form-label">Delivery Address</label>
+                <div style={{ fontSize: 13, fontWeight: 500, color: "var(--dark)" }}>{MERCHANTS[merchantIdx].delivery}</div>
               </div>
 
-              {/* Distance / Window */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 <div>
-                  <label style={labelStyle}>Distance (miles)</label>
-                  <select style={selectStyle} value={distance} onChange={e => setDistance(Number(e.target.value))}>
+                  <label className="form-label">Distance (mi)</label>
+                  <select className="form-select" value={distance} onChange={e => setDistance(Number(e.target.value))}>
                     {[1.2, 2.1, 2.8, 3.2, 4.5, 5.1, 7.8, 12.3].map(d => <option key={d} value={d}>{d} mi</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={labelStyle}>Time Window (min)</label>
-                  <select style={selectStyle} value={window_} onChange={e => setWindow(Number(e.target.value))}>
+                  <label className="form-label">Time Window</label>
+                  <select className="form-select" value={window_} onChange={e => setWindow(Number(e.target.value))}>
                     {[30, 45, 60, 90, 120, 180].map(w => <option key={w} value={w}>{w} min</option>)}
                   </select>
                 </div>
               </div>
 
-              {/* Order Value */}
-              <div style={{ marginBottom: 14 }}>
-                <label style={labelStyle}>Order Value</label>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "#1B1C1C" }}>${currentItem.value_usd.toFixed(2)}</div>
+              <div>
+                <label className="form-label">Order Value</label>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "var(--dark)" }}>${currentItem.value_usd.toFixed(2)}</div>
               </div>
 
-              {/* Requirements */}
-              <div style={{ marginBottom: 16 }}>
-                <label style={labelStyle}>Requirements</label>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 6 }}>
+              <div>
+                <label className="form-label">Requirements</label>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
                   {Object.entries(requirements).map(([key, val]) => (
                     <label key={key} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-                      <input type="checkbox" checked={val} onChange={() => toggleReq(key)} style={{ width: 15, height: 15, accentColor: "#2079F9", cursor: "pointer" }} />
-                      <span style={{ fontSize: 13, color: val ? "#1B1C1C" : "#9CA3AF", fontWeight: val ? 500 : 400 }}>
+                      <input type="checkbox" checked={val} onChange={() => toggleReq(key)} style={{ width: 15, height: 15, accentColor: "var(--blue)", cursor: "pointer" }} />
+                      <span style={{ fontSize: 13, color: val ? "var(--dark)" : "var(--gray-400)", fontWeight: val ? 500 : 400 }}>
                         {key.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
                       </span>
                     </label>
@@ -396,17 +363,15 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Notes */}
-              <div style={{ background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: 8, padding: "10px 12px", fontSize: 12, color: "#92400E", marginBottom: 20, lineHeight: 1.5 }}>
+              <div style={{ background: "var(--warning-light)", border: "1px solid #FED7AA", borderRadius: "var(--radius-sm)", padding: "10px 12px", fontSize: 12, color: "#92400E", lineHeight: 1.6 }}>
                 {currentItem.notes}
               </div>
 
-              {/* Run Button */}
-              <button className="run-btn" onClick={runAgent} disabled={streaming} style={{ width: "100%", background: streaming ? "#9CA3AF" : "#2079F9", color: "#fff", border: "none", borderRadius: 8, padding: "12px 0", fontSize: 14, fontWeight: 700, cursor: streaming ? "not-allowed" : "pointer", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              <button className="btn btn-primary btn-lg w-full" style={{ justifyContent: "center" }} onClick={runAgent} disabled={streaming}>
                 {streaming ? (
-                  <><div style={{ width: 15, height: 15, border: "2px solid rgba(255,255,255,0.3)", borderTop: "2px solid #fff", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />Selecting Provider...</>
+                  <><div style={{ width: 15, height: 15, border: "2px solid rgba(255,255,255,0.3)", borderTop: "2px solid #fff", borderRadius: "50%" }} className="spin" />Selecting Provider...</>
                 ) : (
-                  <><span style={{ fontSize: 16 }}>⚡</span>Select Optimal Provider</>
+                  <><Zap size={16} />Select Optimal Provider</>
                 )}
               </button>
             </div>
@@ -415,24 +380,26 @@ export default function Home() {
           {/* Right: Agent Output */}
           <div ref={outputRef}>
             {!fullText && !streaming && (
-              <div style={{ background: "#fff", borderRadius: 12, border: "1px dashed #D1D5DB", padding: "60px 40px", textAlign: "center", color: "#9CA3AF" }}>
-                <div style={{ fontSize: 40, marginBottom: 16 }}>🤖</div>
-                <div style={{ fontSize: 15, fontWeight: 600, color: "#6B7280", marginBottom: 8 }}>Pulse AI is ready</div>
-                <div style={{ fontSize: 13 }}>Load a scenario or configure your order, then hit "Select Optimal Provider" to watch the agent reason in real time.</div>
+              <div className="card">
+                <div className="empty-state">
+                  <div className="empty-state-icon">🤖</div>
+                  <div className="empty-state-title">Pulse AI is ready</div>
+                  <div className="empty-state-body">Load a scenario or configure your order, then click "Select Optimal Provider" to watch the agent reason in real time.</div>
+                </div>
               </div>
             )}
 
             {error && (
-              <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "16px 20px", color: "#DC2626", fontSize: 13 }}>
-                Error: {error}
+              <div className="card" style={{ border: "1px solid #FECACA" }}>
+                <div className="card-body" style={{ color: "var(--danger)", fontSize: 13 }}>Error: {error}</div>
               </div>
             )}
 
             {steps.length > 0 && (
               <div>
-                <div style={{ marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Agent Reasoning</div>
-                  <div style={{ fontSize: 12, color: "#9CA3AF" }}>{steps.length} / 5 steps</div>
+                <div className="flex-between" style={{ marginBottom: 14 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--gray-700)" }}>Agent Reasoning</span>
+                  <span style={{ fontSize: 12, color: "var(--gray-400)" }}>{steps.length} / 5 steps</span>
                 </div>
                 {steps.map((step, i) => (
                   <StepCard key={step.num} step={step} index={step.num - 1} isActive={streaming && i === steps.length - 1} />
@@ -441,12 +408,12 @@ export default function Home() {
               </div>
             )}
           </div>
-        </main>
+        </div>
 
-        <footer style={{ padding: "16px 32px", textAlign: "center", fontSize: 12, color: "#9CA3AF", borderTop: "1px solid var(--border)", background: "#fff" }}>
-          Built on <span style={{ color: "#2079F9", fontWeight: 600 }}>Dispatch</span> · Powered by Claude claude-sonnet-4-6
+        <footer className="page-footer">
+          Built on <span style={{ color: "var(--blue)", fontWeight: 600 }}>Dispatch</span> · Powered by Claude claude-sonnet-4-6
         </footer>
       </div>
-    </>
+    </div>
   );
 }

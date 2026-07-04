@@ -1,13 +1,13 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
+import { Phone } from "lucide-react";
+import Nav from "../components/Nav";
 import "../globals.css";
 
 const SCENARIOS = [
   {
-    label: "Wrong Order Delivered",
+    label: "Wrong Order",
     emoji: "🍕",
-    type: "REFUND_REQUEST",
-    description: "Customer — refund",
     color: "#10B981",
     transcript: `[Inbound call — Tony's Pizza — 7:42 PM]
 
@@ -34,10 +34,8 @@ Customer: No, a refund is fine. Thank you.
 [Call ended — duration 3m 14s]`,
   },
   {
-    label: "Driver No-Show Again",
+    label: "Driver No-Show",
     emoji: "🚨",
-    type: "ESCALATION",
-    description: "Merchant — escalation",
     color: "#DC2626",
     transcript: `[Inbound call — Dispatch Merchant Line — 6:15 PM]
 
@@ -53,8 +51,6 @@ Agent: I apologize, let me check on that order—
 
 Caller: Order KG-7741. And I'm telling you, if this keeps happening I'm switching to a different platform. We've been with you for two years. Two years. And this month has been a disaster. Every Friday evening, same problem.
 
-Agent: I can see the order. The driver's GPS shows—
-
 Caller: I don't care what the GPS shows. The food is here and the driver is not. I need someone to either send another driver in the next 10 minutes or I'm canceling this order and you're paying for the food.
 
 Agent: I'm escalating this right now to our dispatch team.
@@ -64,11 +60,9 @@ Caller: You said that last time too. I want a call back from a supervisor today.
 [Call ended — duration 5m 51s]`,
   },
   {
-    label: "Catering Order Request",
+    label: "Catering Order",
     emoji: "📦",
-    type: "NEW_ORDER",
-    description: "Restaurant — new order",
-    color: "#2079F9",
+    color: "#2563EB",
     transcript: `[Inbound call — Tony's Pizza — 10:30 AM]
 
 Agent: Thank you for calling Tony's Pizza, how can I help you?
@@ -92,16 +86,12 @@ Caller: Yes, let's do that. I have my company card here.
   {
     label: "Partnership Inquiry",
     emoji: "🤝",
-    type: "PARTNERSHIP_INQUIRY",
-    description: "Business — partnership",
     color: "#7C3AED",
     transcript: `[Inbound call — Dispatch main line — 2:45 PM]
 
 Agent: Thank you for calling Dispatch, how can I direct your call?
 
 Caller: Hi, my name is Priya Sharma. I'm the operations director at FreshBowl — we're a fast-casual chain with 12 locations across Lahore and Karachi. I was hoping to speak with someone about potentially partnering with you for our delivery operations.
-
-Agent: Hi Priya, I'd love to connect you with the right person. Can you tell me a little more about what you're looking for?
 
 Caller: Sure. We currently use two different delivery providers and it's becoming a management headache. We're doing roughly 400 to 500 deliveries a day across all locations. We've heard good things about the platform's dashboard and the way you handle SLA tracking. We're interested in consolidating everything onto one platform.
 
@@ -114,10 +104,8 @@ Agent: Understood, I'll make sure our team reaches out to you today.
 [Call ended — duration 4m 08s]`,
   },
   {
-    label: "Confused Angry Caller",
+    label: "Confused Caller",
     emoji: "😤",
-    type: "GENERAL_SUPPORT",
-    description: "Messy — ambiguous",
     color: "#6B7280",
     transcript: `[Inbound call — Tony's Pizza — 8:55 PM]
 
@@ -127,11 +115,7 @@ Caller: Yeah hi I need to figure out what's going on with my order.
 
 Agent: Of course, can I get your order number?
 
-Caller: I don't know the number. I ordered online like an hour ago. My name's Mike.
-
-Agent: Last name?
-
-Caller: Uh... Davidson. Mike Davidson.
+Caller: I don't know the number. I ordered online like an hour ago. My name's Mike. Mike Davidson.
 
 Agent: Let me look that up. I see a few orders here — was it tonight?
 
@@ -145,8 +129,6 @@ Agent: Okay, let me check—
 
 Caller: And actually can you also tell me if you guys do gluten free crust? My wife just found out she can't eat gluten and I want to order for her next time.
 
-Agent: We do have a gluten-free option. For your current order—
-
 Caller: Right yeah so the order, the charge, and the gluten thing. I also might want to cancel and reorder if you have a different deal.
 
 [Call ended — duration 7m 02s]`,
@@ -155,20 +137,20 @@ Caller: Right yeah so the order, the charge, and the gluten thing. I also might 
 
 const STEP_LABELS = ["Call Parse", "Intent Classification", "Urgency Assessment", "Routing Decision", "Agent Handoff Summary"];
 const STEP_COLORS = [
-  { bg: "#EBF3FF", border: "#2079F9", text: "#2079F9", num: "#2079F9" },
+  { bg: "#EFF6FF", border: "#2563EB", text: "#2563EB", num: "#2563EB" },
   { bg: "#FFF7ED", border: "#F97316", text: "#EA580C", num: "#F97316" },
-  { bg: "#F0FDF4", border: "#22C55E", text: "#16A34A", num: "#22C55E" },
-  { bg: "#F5F3FF", border: "#8B5CF6", text: "#7C3AED", num: "#8B5CF6" },
-  { bg: "#E6F9FD", border: "#00BADA", text: "#0891B2", num: "#00BADA" },
+  { bg: "#F0FDF4", border: "#16A34A", text: "#15803D", num: "#16A34A" },
+  { bg: "#F5F3FF", border: "#7C3AED", text: "#6D28D9", num: "#7C3AED" },
+  { bg: "#ECFEFF", border: "#0891B2", text: "#0E7490", num: "#0891B2" },
 ];
 
 const ROUTE_COLORS = {
-  REFUNDS_TEAM: { bg: "#ECFDF5", text: "#059669", border: "#6EE7B7" },
-  OPS_ESCALATION: { bg: "#FEF2F2", text: "#DC2626", border: "#FECACA" },
-  ORDER_DESK: { bg: "#EBF3FF", text: "#2079F9", border: "#93C5FD" },
+  REFUNDS_TEAM:      { bg: "#ECFDF5", text: "#059669", border: "#6EE7B7" },
+  OPS_ESCALATION:    { bg: "#FEF2F2", text: "#DC2626", border: "#FECACA" },
+  ORDER_DESK:        { bg: "#EFF6FF", text: "#2563EB", border: "#93C5FD" },
   PARTNERSHIPS_TEAM: { bg: "#F5F3FF", text: "#7C3AED", border: "#C4B5FD" },
-  SUPPORT_L1: { bg: "#F3F4F6", text: "#374151", border: "#D1D5DB" },
-  HUMAN_REVIEW: { bg: "#FFFBEB", text: "#D97706", border: "#FCD34D" },
+  SUPPORT_L1:        { bg: "#F3F4F6", text: "#374151", border: "#D1D5DB" },
+  HUMAN_REVIEW:      { bg: "#FFFBEB", text: "#D97706", border: "#FCD34D" },
 };
 
 function parseSteps(text) {
@@ -176,10 +158,10 @@ function parseSteps(text) {
   const steps = [];
   let currentStep = null;
   for (const part of parts) {
-    const headerMatch = part.match(/\*\*STEP (\d+): ([^*]+)\*\*/);
-    if (headerMatch) {
+    const m = part.match(/\*\*STEP (\d+): ([^*]+)\*\*/);
+    if (m) {
       if (currentStep) steps.push(currentStep);
-      currentStep = { num: parseInt(headerMatch[1]), label: headerMatch[2].trim(), content: "" };
+      currentStep = { num: parseInt(m[1]), label: m[2].trim(), content: "" };
     } else if (currentStep) {
       currentStep.content += part;
     }
@@ -189,23 +171,21 @@ function parseSteps(text) {
 }
 
 function extractVerdict(text) {
-  const match = text.match(/INTENT:\*{0,2}\s*([A-Z_]+)(?:\s*\([^)]*\))?\s*\*{0,2}\s*\|\s*\*{0,2}\s*URGENCY:\*{0,2}\s*(\d+)(?:\/\d+)?\s*\*{0,2}\s*\|\s*\*{0,2}\s*ROUTE:\*{0,2}\s*([A-Z_]+)\s*\*{0,2}\s*\|\s*\*{0,2}\s*CONFIDENCE:\*{0,2}\s*(\d+)%/i);
-  if (!match) return null;
-  return { intent: match[1], urgency: parseInt(match[2]), route: match[3], confidence: parseInt(match[4]) };
+  const m = text.match(/INTENT:\*{0,2}\s*([A-Z_]+)(?:\s*\([^)]*\))?\s*\*{0,2}\s*\|\s*\*{0,2}\s*URGENCY:\*{0,2}\s*(\d+)(?:\/\d+)?\s*\*{0,2}\s*\|\s*\*{0,2}\s*ROUTE:\*{0,2}\s*([A-Z_]+)\s*\*{0,2}\s*\|\s*\*{0,2}\s*CONFIDENCE:\*{0,2}\s*(\d+)%/i);
+  if (!m) return null;
+  return { intent: m[1], urgency: parseInt(m[2]), route: m[3], confidence: parseInt(m[4]) };
 }
 
 function StepCard({ step, isActive }) {
   const colors = STEP_COLORS[step.num - 1] || STEP_COLORS[0];
   return (
-    <div style={{ background: colors.bg, border: `1.5px solid ${isActive ? colors.border : "#E5E7EB"}`, borderRadius: 10, padding: "16px 20px", marginBottom: 12, transition: "border-color 0.3s" }}>
+    <div style={{ background: colors.bg, border: `1.5px solid ${isActive ? colors.border : "var(--border)"}`, borderRadius: "var(--radius)", padding: "16px 20px", marginBottom: 10, transition: "border-color 0.25s" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-        <div style={{ width: 28, height: 28, borderRadius: "50%", background: colors.num, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{step.num}</div>
+        <div style={{ width: 26, height: 26, borderRadius: "50%", background: colors.num, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{step.num}</div>
         <span style={{ fontWeight: 600, fontSize: 13, color: colors.text }}>{STEP_LABELS[step.num - 1] || step.label}</span>
-        {isActive && <span style={{ marginLeft: "auto", width: 8, height: 8, borderRadius: "50%", background: colors.border, animation: "pulse 1s infinite", flexShrink: 0 }} />}
+        {isActive && <span className="pulse-dot" style={{ marginLeft: "auto", width: 8, height: 8, borderRadius: "50%", background: colors.border, flexShrink: 0 }} />}
       </div>
-      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5, lineHeight: 1.75, color: "#374151", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-        {step.content.trim() || (isActive ? "Analyzing..." : "")}
-      </div>
+      <div className="step-content">{step.content.trim() || (isActive ? "Analyzing..." : "")}</div>
     </div>
   );
 }
@@ -214,58 +194,48 @@ function VerdictCard({ verdict }) {
   const lowConfidence = verdict.confidence < 70;
   const displayRoute = lowConfidence ? "HUMAN_REVIEW" : verdict.route;
   const colors = ROUTE_COLORS[displayRoute] || ROUTE_COLORS.HUMAN_REVIEW;
-  const urgencyColor = verdict.urgency >= 8 ? "#DC2626" : verdict.urgency >= 5 ? "#F59E0B" : "#10B981";
-  const confidenceColor = verdict.confidence >= 80 ? "#10B981" : verdict.confidence >= 60 ? "#F59E0B" : "#DC2626";
+  const urgencyColor = verdict.urgency >= 8 ? "#DC2626" : verdict.urgency >= 5 ? "#D97706" : "#059669";
+  const confidenceColor = verdict.confidence >= 80 ? "#059669" : verdict.confidence >= 60 ? "#D97706" : "#DC2626";
 
   return (
-    <div style={{ background: "linear-gradient(135deg, #1B1C1C 0%, #2C2D2D 100%)", borderRadius: 12, padding: "20px 24px", marginTop: 8, boxShadow: "0 8px 32px rgba(0,0,0,0.18)" }}>
+    <div className="verdict-card fade-in">
       {lowConfidence && (
-        <div style={{ background: "#FEF3C7", border: "1px solid #FCD34D", borderRadius: 8, padding: "10px 14px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 16 }}>⚠️</span>
+        <div style={{ background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 8, padding: "10px 14px", marginBottom: 16, display: "flex", alignItems: "flex-start", gap: 8 }}>
+          <span>⚠️</span>
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#92400E" }}>Low confidence ({verdict.confidence}%) — flagged for human review</div>
             <div style={{ fontSize: 11, color: "#B45309", marginTop: 2 }}>Originally routed to: {verdict.route.replace(/_/g, " ")}</div>
           </div>
         </div>
       )}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-        <div style={{ background: "#00BADA", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, color: "#fff", letterSpacing: "0.06em", textTransform: "uppercase" }}>Routing Decision</div>
+      <div style={{ marginBottom: 14 }}>
+        <span style={{ background: "#0891B2", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, color: "#fff", letterSpacing: "0.06em", textTransform: "uppercase" }}>Routing Decision</span>
       </div>
-
-      <div style={{ marginBottom: 12 }}>
-        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Intent</div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>{verdict.intent.replace(/_/g, " ")}</div>
+      <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, marginBottom: 4 }}>Intent</div>
+      <div style={{ fontSize: 14, fontWeight: 700, color: "#fff", marginBottom: 14 }}>{verdict.intent.replace(/_/g, " ")}</div>
+      <div style={{ display: "inline-block", background: colors.bg, border: `1.5px solid ${colors.border}`, borderRadius: 8, padding: "8px 16px", marginBottom: 18 }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color: colors.text }}>→ {displayRoute.replace(/_/g, " ")}</span>
       </div>
-
-      <div style={{ display: "inline-block", background: colors.bg, border: `1.5px solid ${colors.border}`, borderRadius: 8, padding: "8px 16px", marginBottom: 16 }}>
-        <span style={{ fontSize: 15, fontWeight: 700, color: colors.text }}>→ {displayRoute.replace(/_/g, " ")}</span>
-      </div>
-
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-        <div style={statStyle}>
-          <span style={statLabel}>Urgency</span>
-          <span style={{ ...statValueBase, color: urgencyColor }}>{verdict.urgency} / 10</span>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <div className="stat-block">
+          <span className="stat-label">Urgency</span>
+          <span style={{ fontSize: 17, fontWeight: 700, color: urgencyColor }}>{verdict.urgency} / 10</span>
         </div>
-        <div style={statStyle}>
-          <span style={statLabel}>Confidence</span>
-          <span style={{ ...statValueBase, color: confidenceColor }}>{verdict.confidence}%</span>
+        <div className="stat-block">
+          <span className="stat-label">Confidence</span>
+          <span style={{ fontSize: 17, fontWeight: 700, color: confidenceColor }}>{verdict.confidence}%</span>
         </div>
-        <div style={statStyle}>
-          <span style={statLabel}>Triaged By</span>
-          <span style={{ ...statValueBase, color: "#00BADA" }}>Pulse AI</span>
+        <div className="stat-block">
+          <span className="stat-label">Triaged By</span>
+          <span className="stat-value">Pulse AI</span>
         </div>
       </div>
-
-      <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.1)", fontSize: 12, color: "rgba(255,255,255,0.5)", fontFamily: "'JetBrains Mono', monospace" }}>
+      <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.08)", fontSize: 11, color: "rgba(255,255,255,0.4)", fontFamily: "'JetBrains Mono', monospace" }}>
         Routed automatically in &lt;2s · Ready for handoff
       </div>
     </div>
   );
 }
-
-const statStyle = { background: "rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 14px", display: "flex", flexDirection: "column", gap: 2 };
-const statLabel = { fontSize: 11, color: "rgba(255,255,255,0.5)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.05em" };
-const statValueBase = { fontSize: 16, fontWeight: 700 };
 
 export default function CallTriagePage() {
   const [transcriptText, setTranscriptText] = useState(SCENARIOS[0].transcript);
@@ -297,7 +267,6 @@ export default function CallTriagePage() {
     setFullText("");
     setDone(false);
     setError(null);
-
     try {
       const res = await fetch("/api/triage-call", {
         method: "POST",
@@ -307,12 +276,12 @@ export default function CallTriagePage() {
       if (!res.ok) throw new Error(`API error ${res.status}`);
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
-      let accumulated = "";
+      let acc = "";
       while (true) {
-        const { done: streamDone, value } = await reader.read();
-        if (streamDone) break;
-        accumulated += decoder.decode(value, { stream: true });
-        setFullText(accumulated);
+        const { done: d, value } = await reader.read();
+        if (d) break;
+        acc += decoder.decode(value, { stream: true });
+        setFullText(acc);
       }
       setDone(true);
     } catch (err) {
@@ -323,69 +292,64 @@ export default function CallTriagePage() {
   }
 
   return (
-    <>
-      <style>{`
-        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.3); } }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .run-btn:hover:not(:disabled) { background: #1560D4 !important; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(32,121,249,0.35) !important; }
-        .scenario-btn:hover { opacity: 0.9; transform: translateY(-1px); }
-        textarea:focus { border-color: #2079F9 !important; box-shadow: 0 0 0 3px rgba(32,121,249,0.1); outline: none; }
-        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 3px; }
-      `}</style>
+    <div className="app-layout">
+      <Nav />
+      <div className="app-main">
 
-      <div style={{ minHeight: "100vh", background: "var(--cream)", display: "flex", flexDirection: "column" }}>
-
-        <header style={{ background: "#fff", borderBottom: "1px solid var(--border)", padding: "0 32px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 100, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ background: "linear-gradient(135deg, #2079F9, #00BADA)", borderRadius: 8, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ color: "#fff", fontSize: 14, fontWeight: 800 }}>B</span>
-            </div>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "#1B1C1C", lineHeight: 1.2 }}>Pulse AI</div>
-              <div style={{ fontSize: 11, color: "#6B7280", letterSpacing: "0.04em" }}>Call Triage Agent</div>
+        <div className="page-header" style={{ padding: 0 }}>
+          <div style={{ padding: "20px 28px 16px", borderBottom: "1px solid var(--border)" }}>
+            <div className="flex-between">
+              <div>
+                <h1 className="page-title">Call Triage</h1>
+                <p className="page-subtitle">Paste a call transcript and let the agent classify, score, and route it.</p>
+              </div>
             </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <a href="/" style={{ fontSize: 13, color: "#6B7280", textDecoration: "none", fontWeight: 500 }}>Provider Selection</a>
-            <a href="/email-agent" style={{ fontSize: 13, color: "#6B7280", textDecoration: "none", fontWeight: 500 }}>Email Triage</a>
-            <a href="/call-triage" style={{ fontSize: 13, color: "#2079F9", textDecoration: "none", fontWeight: 600, borderBottom: "2px solid #2079F9", paddingBottom: 2 }}>Call Triage</a>
-            <a href="/live-call" style={{ fontSize: 13, color: "#6B7280", textDecoration: "none", fontWeight: 500 }}>Live Call</a>
-            <a href="/history" style={{ fontSize: 13, color: "#6B7280", textDecoration: "none", fontWeight: 500 }}>History</a>
-            <a href="/settings" style={{ fontSize: 13, color: "#6B7280", textDecoration: "none", fontWeight: 500 }}>⚙ Settings</a>
+          <div style={{ padding: "10px 28px", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", background: "var(--gray-50)" }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: "var(--gray-400)", textTransform: "uppercase", letterSpacing: "0.08em", marginRight: 4 }}>Scenarios</span>
+            {SCENARIOS.map((s, i) => (
+              <button
+                key={i}
+                className="scenario-btn"
+                onClick={() => loadScenario(i)}
+                style={{
+                  borderColor: activeScenario === i ? s.color : "var(--border)",
+                  background: activeScenario === i ? s.color + "15" : "#fff",
+                  color: activeScenario === i ? s.color : "var(--gray-700)",
+                }}
+              >
+                <span>{s.emoji}</span>
+                <span>{s.label}</span>
+              </button>
+            ))}
           </div>
-        </header>
-
-        <div style={{ background: "#fff", borderBottom: "1px solid var(--border)", padding: "12px 32px", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <span style={{ fontSize: 11, fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em", marginRight: 4 }}>Quick Load</span>
-          {SCENARIOS.map((s, i) => (
-            <button key={i} className="scenario-btn" onClick={() => loadScenario(i)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 20, border: `1.5px solid ${activeScenario === i ? s.color : "#E5E7EB"}`, background: activeScenario === i ? s.color + "14" : "#fff", color: activeScenario === i ? s.color : "#374151", fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 0.15s" }}>
-              <span>{s.emoji}</span>
-              <span>{s.label}</span>
-            </button>
-          ))}
         </div>
 
-        <main style={{ flex: 1, display: "grid", gridTemplateColumns: "440px 1fr", gap: 24, maxWidth: 1280, margin: "0 auto", width: "100%", padding: "24px 32px", alignItems: "start" }}>
+        <div style={{ flex: 1, display: "grid", gridTemplateColumns: "420px 1fr", gap: 24, padding: "24px 28px", alignItems: "start" }}>
 
-          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid var(--border)", overflow: "hidden", boxShadow: "var(--shadow-sm)", position: "sticky", top: 120 }}>
-            <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "#1B1C1C" }}>Call Transcript</span>
-              <span style={{ fontSize: 11, color: "#9CA3AF" }}>Paste or type any transcript</span>
+          <div className="card" style={{ position: "sticky", top: 24 }}>
+            <div className="card-header">
+              <span className="card-header-title">Call Transcript</span>
+              <span style={{ fontSize: 11, color: "var(--gray-400)" }}>Paste or type any transcript</span>
             </div>
-
-            <div style={{ padding: "20px" }}>
+            <div className="card-body">
               <textarea
+                className="form-textarea mono"
                 value={transcriptText}
                 onChange={e => { setTranscriptText(e.target.value); setActiveScenario(null); }}
-                placeholder="Paste a call transcript here — customer complaint, merchant escalation, new order request, or partnership inquiry..."
-                style={{ width: "100%", height: 340, padding: "12px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 12.5, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1.7, color: "#374151", resize: "vertical", transition: "border-color 0.2s", background: "#FAFAFA" }}
+                placeholder="Paste a call transcript here — customer complaint, merchant escalation, new order, or partnership inquiry..."
+                style={{ height: 340, fontSize: 12, lineHeight: 1.75 }}
               />
-
-              <button className="run-btn" onClick={runAgent} disabled={streaming || !transcriptText.trim()} style={{ width: "100%", marginTop: 14, background: streaming ? "#9CA3AF" : "#2079F9", color: "#fff", border: "none", borderRadius: 8, padding: "12px 0", fontSize: 14, fontWeight: 700, cursor: streaming ? "not-allowed" : "pointer", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              <button
+                className="btn btn-primary btn-lg w-full"
+                style={{ marginTop: 14, justifyContent: "center" }}
+                onClick={runAgent}
+                disabled={streaming || !transcriptText.trim()}
+              >
                 {streaming ? (
-                  <><div style={{ width: 15, height: 15, border: "2px solid rgba(255,255,255,0.3)", borderTop: "2px solid #fff", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />Triaging Call...</>
+                  <><div style={{ width: 15, height: 15, border: "2px solid rgba(255,255,255,0.3)", borderTop: "2px solid #fff", borderRadius: "50%" }} className="spin" />Triaging call...</>
                 ) : (
-                  <><span style={{ fontSize: 16 }}>📞</span>Triage This Call</>
+                  <><Phone size={16} />Triage This Call</>
                 )}
               </button>
             </div>
@@ -393,22 +357,24 @@ export default function CallTriagePage() {
 
           <div ref={outputRef}>
             {!fullText && !streaming && (
-              <div style={{ background: "#fff", borderRadius: 12, border: "1px dashed #D1D5DB", padding: "60px 40px", textAlign: "center", color: "#9CA3AF" }}>
-                <div style={{ fontSize: 40, marginBottom: 16 }}>📞</div>
-                <div style={{ fontSize: 15, fontWeight: 600, color: "#6B7280", marginBottom: 8 }}>Call Triage Agent is ready</div>
-                <div style={{ fontSize: 13 }}>Load a scenario or paste your own call transcript, then hit "Triage This Call" to watch the agent classify, score, and route in real time.</div>
+              <div className="card">
+                <div className="empty-state">
+                  <div className="empty-state-icon">📞</div>
+                  <div className="empty-state-title">Call Triage Agent is ready</div>
+                  <div className="empty-state-body">Load a scenario or paste your own call transcript, then click "Triage This Call" to watch the agent classify, score, and route in real time.</div>
+                </div>
               </div>
             )}
-
             {error && (
-              <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "16px 20px", color: "#DC2626", fontSize: 13 }}>Error: {error}</div>
+              <div className="card" style={{ border: "1px solid #FECACA" }}>
+                <div className="card-body" style={{ color: "var(--danger)", fontSize: 13 }}>Error: {error}</div>
+              </div>
             )}
-
             {steps.length > 0 && (
               <div>
-                <div style={{ marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Agent Reasoning</div>
-                  <div style={{ fontSize: 12, color: "#9CA3AF" }}>{steps.length} / 5 steps</div>
+                <div className="flex-between" style={{ marginBottom: 14 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--gray-700)" }}>Agent Reasoning</span>
+                  <span style={{ fontSize: 12, color: "var(--gray-400)" }}>{steps.length} / 5 steps</span>
                 </div>
                 {steps.map((step, i) => (
                   <StepCard key={step.num} step={step} isActive={streaming && i === steps.length - 1} />
@@ -417,12 +383,12 @@ export default function CallTriagePage() {
               </div>
             )}
           </div>
-        </main>
+        </div>
 
-        <footer style={{ padding: "16px 32px", textAlign: "center", fontSize: 12, color: "#9CA3AF", borderTop: "1px solid var(--border)", background: "#fff" }}>
-          Built on <span style={{ color: "#2079F9", fontWeight: 600 }}>Dispatch</span> · Powered by Claude claude-sonnet-4-6
+        <footer className="page-footer">
+          Built on <span style={{ color: "var(--blue)", fontWeight: 600 }}>Dispatch</span> · Powered by Claude claude-sonnet-4-6
         </footer>
       </div>
-    </>
+    </div>
   );
 }
