@@ -28,7 +28,7 @@ Write the internal handoff note for the receiving team. Include: caller name, wh
 End with: INTENT: [intent type] | URGENCY: [1-10] | ROUTE: [team] | CONFIDENCE: [percentage]%`;
 
 function extractVerdict(text) {
-  const match = text.match(/INTENT:\s*([A-Z_]+)\s*\|\s*URGENCY:\s*(\d+)\s*\|\s*ROUTE:\s*([A-Z_]+)\s*\|\s*CONFIDENCE:\s*(\d+)%/i);
+  const match = text.match(/INTENT:\s*([A-Z_]+)\s*\|\s*URGENCY:\s*(\d+)(?:\/\d+)?\s*\|\s*ROUTE:\s*([A-Z_]+)\s*\|\s*CONFIDENCE:\s*(\d+)%/i);
   if (!match) return null;
   return { intent: match[1], urgency: parseInt(match[2]), route: match[3], confidence: parseInt(match[4]) };
 }
