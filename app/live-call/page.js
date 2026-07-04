@@ -42,7 +42,7 @@ function computeSentiment(transcript) {
   const angryScore = ANGRY_WORDS.filter(w => text.includes(w)).length;
   const frustratedScore = FRUSTRATED_WORDS.filter(w => text.includes(w)).length;
   if (angryScore >= 2) return "angry";
-  if (angryScore >= 1 || frustratedScore >= 2) return "frustrated";
+  if (angryScore >= 1 || frustratedScore >= 1) return "frustrated";
   return "calm";
 }
 
