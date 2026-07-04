@@ -253,12 +253,7 @@ export default function LiveCallPage() {
         clearInterval(timerRef.current);
       });
 
-      await vapi.start(process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID, {
-        assistantOverrides: {
-          firstMessage: `Thank you for calling ${profile.name}, this is ${profile.agentName} speaking. How can I help you today?`,
-          model: { provider: "anthropic", model: "claude-sonnet-4-6", systemPrompt: buildSystemPrompt(profile) },
-        },
-      });
+      await vapi.start(process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID);
     } catch (err) {
       setError("Failed to start call: " + err.message);
       setCallState(STATE.IDLE);
