@@ -1,0 +1,73 @@
+[
+  {
+    "id": "wrong-order",
+    "label": "Wrong Order — customer refund",
+    "transcript": "[Inbound call — Tony's Pizza — 7:42 PM]\n\nAgent: Thank you for calling Tony's Pizza, how can I help you?\n\nCustomer: Hi yeah, I just got my delivery and it's completely wrong. I ordered a large pepperoni with extra cheese and garlic bread, and they sent me like a veggie pizza and some random pasta. My order number is TP-20260703-8821.\n\nAgent: I'm really sorry about that. Let me pull up your order.\n\nCustomer: And it's cold too. Like it's been sitting here for a while. I've been waiting for over an hour for this.\n\nAgent: I completely understand your frustration. Can I get your name?\n\nCustomer: It's Sarah. Sarah Moreno.\n\nAgent: Sarah, I can see your order here. You're absolutely right — there's been a mix-up at our end. I want to make this right for you.\n\nCustomer: I just want a refund at this point. I'm not going to wait another hour. My kids are hungry.\n\nAgent: Of course, I completely understand. I'll process a full refund for you right now. Is there anything else I can help you with?\n\nCustomer: No, a refund is fine. Thank you.\n\n[Call ended — duration 3m 14s]",
+    "expected": {
+      "intent": "REFUND_REQUEST",
+      "route": "REFUNDS_TEAM",
+      "urgency_min": 5,
+      "urgency_max": 9,
+      "confidence_min": 75
+    }
+  },
+  {
+    "id": "driver-no-show",
+    "label": "Driver No-Show — merchant escalation",
+    "transcript": "[Inbound call — Dispatch Merchant Line — 6:15 PM]\n\nAgent: Dispatch merchant support, how can I help?\n\nCaller: This is Ahmed from Karachi Grill on Main. I need to speak to a manager right now.\n\nAgent: Of course, what's happening?\n\nCaller: Your driver has not shown up again. This is the third time this week. I have food sitting here getting cold, the customer is calling me directly now, and your app says the driver is \"on the way\" but he's not here. He's been \"on the way\" for 45 minutes.\n\nAgent: I apologize, let me check on that order—\n\nCaller: Order KG-7741. And I'm telling you, if this keeps happening I'm switching to a different platform. We've been with you for two years. Two years. And this month has been a disaster. Every Friday evening, same problem.\n\nCaller: I don't care what the GPS shows. The food is here and the driver is not. I need someone to either send another driver in the next 10 minutes or I'm canceling this order and you're paying for the food.\n\nAgent: I'm escalating this right now to our dispatch team.\n\nCaller: You said that last time too. I want a call back from a supervisor today.\n\n[Call ended — duration 5m 51s]",
+    "expected": {
+      "intent": "ESCALATION",
+      "route": "OPS_ESCALATION",
+      "urgency_min": 7,
+      "urgency_max": 10,
+      "confidence_min": 80
+    }
+  },
+  {
+    "id": "catering-order",
+    "label": "Catering Order — new order",
+    "transcript": "[Inbound call — Tony's Pizza — 10:30 AM]\n\nAgent: Thank you for calling Tony's Pizza, how can I help you?\n\nCaller: Hi, I'm calling from the Greenfield Corporate Park. We have our quarterly company event tomorrow afternoon and we want to place a large catering order.\n\nAgent: Absolutely, we'd love to help with that. How many people are we talking about?\n\nCaller: About 80 people. We're thinking 15 large pizzas, a mix of pepperoni, margherita, and BBQ chicken. And we'd need it delivered by 12:30pm. The address is 2400 Greenfield Boulevard, Building C.\n\nAgent: Let me check our availability for tomorrow. Can I get your name and a contact number?\n\nCaller: Sure, it's James Whitfield, 408-555-0192.\n\nAgent: Great James. We can definitely do 15 large pizzas for tomorrow at 12:30. For an order this size we'll need a 50% deposit. Would you like to pay that now over the phone?\n\nCaller: Yes, let's do that. I have my company card here.\n\n[Call ended — duration 6m 22s]",
+    "expected": {
+      "intent": "NEW_ORDER",
+      "route": "ORDER_DESK",
+      "urgency_min": 3,
+      "urgency_max": 9,
+      "confidence_min": 80
+    }
+  },
+  {
+    "id": "partnership-inquiry",
+    "label": "Partnership Inquiry — high-value prospect",
+    "transcript": "[Inbound call — Dispatch main line — 2:45 PM]\n\nAgent: Thank you for calling Dispatch, how can I direct your call?\n\nCaller: Hi, my name is Priya Sharma. I'm the operations director at FreshBowl — we're a fast-casual chain with 12 locations across Lahore and Karachi. I was hoping to speak with someone about potentially partnering with you for our delivery operations.\n\nCaller: Sure. We currently use two different delivery providers and it's becoming a management headache. We're doing roughly 400 to 500 deliveries a day across all locations. We've heard good things about the platform's dashboard and the way you handle SLA tracking. We're interested in consolidating everything onto one platform.\n\nAgent: That's a significant volume. We'd definitely want to set up a proper conversation with our partnerships team.\n\nCaller: Yes, that would be ideal. We're looking to make a decision by end of July. I should mention we've also had a preliminary call with Foodpanda's B2B team so we're comparing options.\n\nAgent: Understood, I'll make sure our team reaches out to you today.\n\n[Call ended — duration 4m 08s]",
+    "expected": {
+      "intent": "PARTNERSHIP_INQUIRY",
+      "route": "PARTNERSHIPS_TEAM",
+      "urgency_min": 5,
+      "urgency_max": 9,
+      "confidence_min": 85
+    }
+  },
+  {
+    "id": "confused-caller",
+    "label": "Confused Caller — ambiguous intent",
+    "transcript": "[Inbound call — Tony's Pizza — 8:55 PM]\n\nAgent: Tony's Pizza, how can I help?\n\nCaller: Yeah hi I need to figure out what's going on with my order.\n\nAgent: Of course, can I get your order number?\n\nCaller: I don't know the number. I ordered online like an hour ago. My name's Mike. Mike Davidson.\n\nAgent: Let me look that up. I see a few orders here — was it tonight?\n\nCaller: Yes tonight obviously. I'm waiting for it. The app said 35 to 45 minutes. It's been way longer than that.\n\nAgent: I see one order placed at 7:58pm, is that yours?\n\nCaller: Maybe? I don't know. It said delivered but I never got anything. And also I wanted to ask about the charge on my card because I got charged twice I think. Or maybe it's from last time. I'm not sure.\n\nAgent: Okay, let me check—\n\nCaller: And actually can you also tell me if you guys do gluten free crust? My wife just found out she can't eat gluten and I want to order for her next time.\n\nCaller: Right yeah so the order, the charge, and the gluten thing. I also might want to cancel and reorder if you have a different deal.\n\n[Call ended — duration 7m 02s]",
+    "expected": {
+      "intent_any_of": ["REFUND_REQUEST", "GENERAL_SUPPORT"],
+      "route_any_of": ["SUPPORT_L1", "REFUNDS_TEAM", "HUMAN_REVIEW"],
+      "urgency_min": 3,
+      "urgency_max": 8,
+      "confidence_min": 0
+    }
+  },
+  {
+    "id": "insulin-email",
+    "label": "Insulin Left Outside — email triage",
+    "type": "email",
+    "email": "From: Margaret Chen <mchen@email.com>\nTo: support@safeway.com\nSubject: FWD: My insulin was left outside in the heat\n\nHi,\n\nI am absolutely furious. I ordered insulin through your app this morning — order was supposed to arrive by 11am. The driver dropped it at my door at 11:47am without ringing the bell. I only found it at 2:30pm when I got home from my appointment.\n\nInsulin cannot be left unattended in heat above 77 degrees. It was 89 degrees outside today. The medication is now RUINED and I cannot use it. This is a $340 order and more importantly this is my medication.\n\nI am diabetic. This is not a convenience item. I need a full refund and I need someone to explain how this happened.\n\nMargaret Chen\nOrder #SF-20260703-4421",
+    "expected_email": {
+      "action": "INITIATE_REFUND",
+      "severity_min": 8,
+      "confidence_min": 85
+    }
+  }
+]

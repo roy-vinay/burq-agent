@@ -171,7 +171,7 @@ function parseSteps(text) {
 }
 
 function extractVerdict(text) {
-  const m = text.match(/\*{0,2}INTENT:\*{0,2}\s*([A-Z_]+)(?:\s*\([^)]*\))?\s*\*{0,2}\s*\|\s*\*{0,2}\s*URGENCY:\*{0,2}\s*(\d+)(?:\/\d+)?\s*\*{0,2}\s*\|\s*\*{0,2}\s*ROUTE:\*{0,2}\s*([A-Z_]+)\s*\*{0,2}\s*\|\s*\*{0,2}\s*CONFIDENCE:\*{0,2}\s*(\d+)%\*{0,2}/i);
+  const m = text.match(/\*{0,2}INTENT:\*{0,2}\s*([A-Z_]+)[^|]*\|\s*\*{0,2}\s*URGENCY:\*{0,2}\s*(\d+)(?:\/\d+)?\s*\*{0,2}\s*\|\s*\*{0,2}\s*ROUTE:\*{0,2}\s*([A-Z_]+)[^|]*\|\s*\*{0,2}\s*CONFIDENCE:\*{0,2}\s*(\d+)%\*{0,2}/i);
   if (!m) return null;
   return { intent: m[1], urgency: parseInt(m[2]), route: m[3], confidence: parseInt(m[4]) };
 }

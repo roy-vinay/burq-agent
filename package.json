@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "eval": "node evals/run.mjs",
+    "eval:consistency": "node evals/run.mjs --runs 3"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.0",
