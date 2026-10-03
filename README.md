@@ -1,5 +1,7 @@
 # Pulse AI — Provider Selection Agent
 
+> **This project now lives in [applied-ai-agents](https://github.com/roy-vinay/applied-ai-agents/tree/main/agents/delivery-provider-selection)**, alongside my other agents. This repo stays up for its live demo and history.
+
 A real-time delivery provider selection agent for last-mile delivery. Demonstrates multi-step AI reasoning for optimal provider assignment across cost, reliability, coverage, and order-specific requirements.
 
 **Live demo:** https://dispatch-agent.vercel.app
