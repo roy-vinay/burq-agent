@@ -2,6 +2,10 @@
 
 A real-time delivery provider selection agent for last-mile delivery. Demonstrates multi-step AI reasoning for optimal provider assignment across cost, reliability, coverage, and order-specific requirements.
 
+**Live demo:** https://dispatch-agent.vercel.app
+
+![Agent reasoning through a pharmacy delivery](docs/screenshot.png)
+
 ## What it does
 
 Takes an incoming order (pre-filled with a Safeway pharmacy scenario) and reasons through 5 steps to select the optimal delivery provider from a network of 6 providers — eliminating unqualified candidates, evaluating fit, ranking options, and delivering a final recommendation with cost and reliability estimates.
