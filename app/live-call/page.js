@@ -497,7 +497,7 @@ export default function LiveCallPage() {
         </div>
 
         <footer className="page-footer">
-          Built on <span style={{ color: "var(--blue)", fontWeight: 600 }}>Dispatch</span> · Voice by {activeProvider === "retell" ? "Retell AI" : "Vapi.ai"} · Powered by Claude claude-sonnet-4-6
+          Built on <span style={{ color: "var(--blue)", fontWeight: 600 }}>Dispatch AI</span> · Voice by {activeProvider === "retell" ? "Retell AI" : "Vapi.ai"} · Powered by Claude claude-sonnet-4-6
         </footer>
       </div>
     </div>

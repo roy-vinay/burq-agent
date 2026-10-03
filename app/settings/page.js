@@ -217,7 +217,7 @@ export default function SettingsPage() {
         </div>
 
         <footer className="page-footer">
-          Built on <span style={{ color: "var(--blue)", fontWeight: 600 }}>Dispatch</span> · Powered by Claude claude-sonnet-4-6
+          Built on <span style={{ color: "var(--blue)", fontWeight: 600 }}>Dispatch AI</span> · Powered by Claude claude-sonnet-4-6
         </footer>
       </div>
     </div>
